@@ -38,7 +38,7 @@ exports.getPlacesAutocomplete = onCall(
   { cors: true }, // Enables CORS for this function
   async (request) => {
     const input = request.data.input;
-    const apiKey = "AIzaSyB87_uR_oZbh504BGowBOPR6Y_nQDo2LeQ"; // Use a secure Server Key, not the browser one
+    const apiKey = "APIKEY"; // Use a secure Server Key, not the browser one
 
     if (!input) return { predictions: [] };
 
@@ -57,7 +57,7 @@ exports.getPlaceDetails = onCall(
   { cors: true },
   async (request) => {
     const placeId = request.data.placeId;
-    const apiKey = "AIzaSyB87_uR_oZbh504BGowBOPR6Y_nQDo2LeQ";
+    const apiKey = "APIKEY";
 
     try {
       const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=geometry&key=${apiKey}`;
