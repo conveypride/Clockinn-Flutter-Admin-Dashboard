@@ -3,93 +3,61 @@ import 'package:video_player/video_player.dart';
 
 class LandingController extends GetxController {
   // Observables for inputs
-  final RxInt employeeCount = 1.obs;
-  final RxInt officeCount = 1.obs;
-  final RxBool isYearly = false.obs; // Default to monthly to match HTML check
+  final RxInt employeeCount = 10.obs; // Default to 10 for better visual demo
+  final RxBool isYearly = false.obs; 
 
-// --- VIDEO CONTROLLER LOGIC ---
+  // --- VIDEO CONTROLLER LOGIC ---
   late VideoPlayerController demoVideoController;
   final RxBool isVideoInitialized = false.obs;
 
+  // Constant Pricing
+  final double baseRatePerEmployee = 30.0;
 
-  // Computed properties (Getters)
-  String get planName {
-    if (officeCount.value <= 1) return 'Standard';
-    if (officeCount.value <= 3) return 'Professional';
-    return 'Premium';
-  }
-
-  // Feature flags based on Plan
-  bool get hasNotifications => officeCount.value > 1; // Pro & Premium
-  bool get hasShiftSystem => officeCount.value > 1;
-  bool get hasPremiumSupport => officeCount.value > 3; // Premium only
-  int get reportDays => officeCount.value <= 1 ? 30 : (officeCount.value <= 3 ? 60 : 120);
-  String get announcementCount => officeCount.value <= 1 ? "5" : (officeCount.value <= 3 ? "15" : "Unlimited");
-  String get adminCount => officeCount.value <= 1 ? "1" : (officeCount.value <= 3 ? "3" : "Unlimited");
-
-
-@override
+  @override
   void onInit() {
     super.onInit();
     _initVideo();
   }
 
-
   void _initVideo() async {
-    // Ensure you have this file in your assets
     demoVideoController = VideoPlayerController.asset('assets/img/demo-screen.mp4');
-    
     await demoVideoController.initialize();
     await demoVideoController.setLooping(true);
     await demoVideoController.setVolume(0.0); // Mute is required for web autoplay
     await demoVideoController.play();
-    
     isVideoInitialized.value = true;
   }
 
-  // Pricing Logic (Ported from your JS)
-  double get yearlyBasePrice {
-    int count = employeeCount.value;
-    double base = 0;
-    
-    // Logic for Standard Plan Base Prices (Adjusted based on plan tier logic in JS)
-    if (count <= 50) base = 1500;
-    else if (count <= 100) base = 2000;
-    else if (count <= 150) base = 2500;
-    else if (count <= 200) base = 3000;
-    else base = 3500;
+  // --- SIMPLIFIED PRICING LOGIC ---
 
-    // Price bumps for tiers (inferred from JS logic where prices increased by 500 per tier)
-    if (planName == 'Professional') base += 500;
-    if (planName == 'Premium') base += 1000;
-
-    return base;
-  }
-
+  // 1. The total amount the user pays at checkout
   double get billingTotal {
+    double monthlyTotal = employeeCount.value * baseRatePerEmployee;
+
     if (isYearly.value) {
-      return yearlyBasePrice;
+      // Calculate 12 months, then apply 20% discount
+      return (monthlyTotal * 12) * 0.80; 
     } else {
-      // Monthly is Yearly / 10
-      return yearlyBasePrice / 10;
+      return monthlyTotal;
     }
   }
 
-  double get pricePerEmployee {
-    double total = billingTotal;
-    double perEmp = total / (employeeCount.value == 0 ? 1 : employeeCount.value);
-    
+  // 2. The "Price per employee" shown to the user
+  double get pricePerEmployeeDisplay {
     if (isYearly.value) {
-      return perEmp / 12; // Show monthly breakdown
+      // If paying yearly, show the effective discounted monthly rate
+      // (30 * 12 * 0.8) / 12 = 24
+      return baseRatePerEmployee * 0.80; 
     }
-    return perEmp;
+    return baseRatePerEmployee;
   }
 
+  // 3. Plan Name (Simple one plan)
+  String get planName => "All-Inclusive Plan";
 
-@override
+  @override
   void onClose() {
     demoVideoController.dispose();
     super.onClose();
   }
-
 }

@@ -34,7 +34,7 @@ class LoginController extends GetxController {
       if (userCredential.user != null) {
         String uid = userCredential.user!.uid;
 
-        // 2. FETCH ADMIN PROFILE (Optimized: Direct Doc Get)
+        // 2. FETCH ADMIN PROFILE
         DocumentSnapshot adminDoc = await _db.collection('adminusers').doc(uid).get();
 
         if (adminDoc.exists) {
@@ -47,27 +47,42 @@ class LoginController extends GetxController {
           companyId.value = data['companyId'] ?? "";
           isSuperAdmin.value = data['isSuperAdmin'] ?? false;
 
-          // 3. CHECK SUBSCRIPTION STATUS (Crucial Step)
-          // We fetch the COMPANY document to see if they have paid
+          // 3. FETCH COMPANY DOC & CHECK STATUS
           DocumentSnapshot companyDoc = await _db.collection('companies').doc(companyId.value).get();
           
           if (companyDoc.exists) {
             String status = companyDoc['companyscription'] ?? 'inactive';
             companyStatus.value = status;
 
+            // --- CHECK 1: SUBSCRIPTION STATUS ---
             if (status != 'active') {
-              // SUBSCRIPTION EXPIRED / INACTIVE
-              Get.offAllNamed('/subscription'); // FORCE REDIRECT TO PAYMENT
+              Get.offAllNamed('/subscription'); 
               Get.snackbar(
                 "Subscription Expired", 
                 "Please renew your subscription to access the dashboard.", 
                 backgroundColor: Colors.red, colorText: Colors.white, duration: const Duration(seconds: 5)
               );
+              return; // Stop execution
+            } 
+
+            // --- CHECK 2: OFFICE SETUP STATUS (NEW LOGIC) ---
+            // If the field doesn't exist or is 0, we force them to setup.
+            int operationSitesCount = companyDoc['countOperationSites'] ?? 0;
+
+            if (operationSitesCount == 0) {
+              // User has no offices -> FORCE SETUP
+              Get.offAllNamed('/setup-office');
+              Get.snackbar(
+                "Complete Setup", 
+                "You must set up at least one office location to proceed.", 
+                backgroundColor: Colors.orange, colorText: Colors.white
+              );
             } else {
-              // ACTIVE SUBSCRIPTION
+              // ALL GOOD -> DASHBOARD
               Get.offAllNamed('/dashboard');
-              Get.snackbar("Welcome", "Logged in successfully");
+              Get.snackbar("Welcome", "Logged in successfully", backgroundColor: Colors.green, colorText: Colors.white);
             }
+
           } else {
             throw "Company record not found.";
           }
@@ -82,7 +97,6 @@ class LoginController extends GetxController {
       isLoading.value = false;
     }
   }
-
 
   void logout() async {
     await _auth.signOut();

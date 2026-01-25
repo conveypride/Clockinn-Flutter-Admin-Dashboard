@@ -1,15 +1,14 @@
- import 'package:clockinn_flutter_admin/controllers/login_controller.dart';
+import 'package:clockinn_flutter_admin/controllers/signup_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart'; 
 
-class LoginScreen extends StatelessWidget {
-  const LoginScreen({super.key});
+class SignupScreen extends StatelessWidget {
+  const SignupScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Inject the Controller
-    final LoginController controller = Get.put(LoginController());
+    final controller = Get.put(SignupController());
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA), // Light grey background
@@ -34,7 +33,7 @@ class LoginScreen extends StatelessWidget {
                 // LEFT SIDE: Branding / Visuals
                 Expanded(
                   child: Container(
-                    height: 600,
+                    height: 650,
                     decoration: const BoxDecoration(
                       color: Color(0xFF10B981), // ClockInn Green
                       borderRadius: BorderRadius.only(
@@ -47,10 +46,10 @@ class LoginScreen extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Icon(Icons.admin_panel_settings_outlined, size: 60, color: Colors.white),
+                        const Icon(Icons.watch_later_outlined, size: 60, color: Colors.white),
                         const SizedBox(height: 20),
                         Text(
-                          "Welcome Back.",
+                          "Join ClockInn Today.",
                           style: GoogleFonts.inter(
                             fontSize: 32,
                             fontWeight: FontWeight.bold,
@@ -59,7 +58,7 @@ class LoginScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 10),
                         Text(
-                          "Sign in to manage your company, view attendance reports, and oversee employee productivity.",
+                          "Manage your workforce attendance, geolocation, and payroll efficiently from one dashboard.",
                           style: GoogleFonts.inter(
                             fontSize: 16,
                             color: Colors.white70,
@@ -76,7 +75,7 @@ class LoginScreen extends StatelessWidget {
                   ),
                 ),
 
-                // RIGHT SIDE: Login Form
+                // RIGHT SIDE: Signup Form
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.all(50),
@@ -84,7 +83,7 @@ class LoginScreen extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          "Admin Login",
+                          "Create Admin Account",
                           style: GoogleFonts.inter(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
@@ -94,10 +93,10 @@ class LoginScreen extends StatelessWidget {
                         const SizedBox(height: 8),
                         Row(
                           children: [
-                            Text("New to ClockInn? ", style: GoogleFonts.inter(color: Colors.grey)),
+                            Text("Already have an account? ", style: GoogleFonts.inter(color: Colors.grey)),
                             InkWell(
-                              onTap: () => Get.offNamed('/signup'), // Navigate to Signup
-                              child: Text("Create Account", 
+                              onTap: () => Get.offNamed('/login'),
+                              child: Text("Sign In", 
                                 style: GoogleFonts.inter(
                                   color: const Color(0xFF10B981), 
                                   fontWeight: FontWeight.bold
@@ -108,77 +107,47 @@ class LoginScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 40),
 
-                        // Email Field
-                        _buildTextField(
-                          "Email Address", 
-                          controller.emailCtrl, 
-                          Icons.email_outlined
-                        ),
-                        
+                        // Form Fields
+                        _buildTextField("Full Name", controller.nameCtrl, Icons.person_outline),
+                        const SizedBox(height: 20),
+                        _buildTextField("Company Name", controller.companyNameCtrl, Icons.business_outlined),
+                        const SizedBox(height: 20),
+                        _buildTextField("Email Address", controller.emailCtrl, Icons.email_outlined),
+                        const SizedBox(height: 20),
+                        _buildTextField("Phone Number", controller.phoneCtrl, Icons.phone_outlined),
                         const SizedBox(height: 20),
                         
                         // Password Field
                         Obx(() => TextField(
                           controller: controller.passwordCtrl,
                           obscureText: !controller.isPasswordVisible.value,
-                          onSubmitted: (_) => controller.login(), // Login on Enter
                           decoration: InputDecoration(
                             labelText: "Password",
-                            prefixIcon: Icon(Icons.lock_outline, color: Colors.grey[500]),
+                            prefixIcon: const Icon(Icons.lock_outline),
                             suffixIcon: IconButton(
-                              icon: Icon(
-                                controller.isPasswordVisible.value 
-                                  ? Icons.visibility 
-                                  : Icons.visibility_off,
-                                color: Colors.grey,
-                              ),
+                              icon: Icon(controller.isPasswordVisible.value 
+                                ? Icons.visibility 
+                                : Icons.visibility_off),
                               onPressed: controller.togglePassword,
                             ),
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide: BorderSide(color: Colors.grey[300]!),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide: const BorderSide(color: Color(0xFF10B981), width: 2),
-                            ),
                           ),
                         )),
 
-                        const SizedBox(height: 10),
-
-                        // Forgot Password Link
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: InkWell(
-                            onTap: () => Get.toNamed('/forgot-password'),
-                            child: Text(
-                              "Forgot Password?",
-                              style: GoogleFonts.inter(
-                                color: const Color(0xFF10B981),
-                                fontWeight: FontWeight.w600,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ),
-                        ),
-
                         const SizedBox(height: 40),
 
-                        // Login Button
+                        // Submit Button
                         Obx(() => SizedBox(
                           width: double.infinity,
                           height: 50,
                           child: ElevatedButton(
-                            onPressed: controller.isLoading.value ? null : controller.login,
+                            onPressed: controller.isLoading.value ? null : controller.signup,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF10B981),
                               foregroundColor: Colors.white,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(10),
                               ),
-                              elevation: 2,
                             ),
                             child: controller.isLoading.value
                                 ? const SizedBox(
@@ -186,7 +155,7 @@ class LoginScreen extends StatelessWidget {
                                     child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
                                   )
                                 : Text(
-                                    "Sign In",
+                                    "Get Started",
                                     style: GoogleFonts.inter(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w600,

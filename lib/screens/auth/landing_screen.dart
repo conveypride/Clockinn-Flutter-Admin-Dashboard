@@ -2,7 +2,7 @@ import 'package:clockinn_flutter_admin/controllers/landing_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:flutter_svg/flutter_svg.dart'; // Import SVG package
+// Import SVG package
 import 'package:video_player/video_player.dart'; // Import Video package
 
 class LandingScreen extends GetView<LandingController> {
@@ -54,7 +54,7 @@ class LandingScreen extends GetView<LandingController> {
               _navLink('Download', () {}),
               _navLink('Pricing', () {}),
               _navLink('SignIn', () => Get.toNamed('/login')),
-              _navLink('SignUp', () {}),
+              _navLink('SignUp', () => Get.toNamed('/signup')),
               const SizedBox(width: 16),
               ElevatedButton.icon(
                 onPressed: () {},
@@ -88,7 +88,7 @@ class LandingScreen extends GetView<LandingController> {
           ListTile(title: const Text("Features"), onTap: () {}),
           ListTile(title: const Text("Pricing"), onTap: () {}),
           ListTile(title: const Text("Sign In"), onTap: () => Get.toNamed('/login')),
-          ListTile(title: const Text("Sign Up"), onTap: () {}),
+          ListTile(title: const Text("Sign Up"), onTap: () => Get.toNamed('/signup')),
         ],
       ),
     );
@@ -329,8 +329,8 @@ class LandingScreen extends GetView<LandingController> {
       ),
     );
   }
-
-  // --- 6. Pricing Calculator ---
+  
+  // --- 6. Pricing Calculator (FIXED) ---
   Widget _buildPricingSection(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 80, horizontal: 20),
@@ -340,7 +340,12 @@ class LandingScreen extends GetView<LandingController> {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(15),
-            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha:0.1), blurRadius: 30, offset: const Offset(0, 5))],
+            boxShadow: [
+              BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.1),
+                  blurRadius: 30,
+                  offset: const Offset(0, 5))
+            ],
           ),
           child: Column(
             children: [
@@ -349,24 +354,37 @@ class LandingScreen extends GetView<LandingController> {
                 padding: const EdgeInsets.all(30),
                 child: Column(
                   children: [
-                    Text("Calculate Your Plan", style: GoogleFonts.kanit(fontSize: 32, fontWeight: FontWeight.bold)),
-                    const Text("Simple, transparent pricing", style: TextStyle(color: Colors.grey)),
-                    const SizedBox(height: 20),
-                    // Toggles
+                    Text("Calculate Your Plan",
+                        style: GoogleFonts.kanit(
+                            fontSize: 32, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 10),
+                    const Text(
+                      "One simple price. All features included.",
+                      style: TextStyle(color: Colors.grey, fontSize: 16),
+                    ),
+                    const SizedBox(height: 25),
+                    
+                    // Toggles (Keep Obx here because isYearly is observable)
                     Obx(() => Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             ChoiceChip(
                               label: const Text("Monthly"),
                               selected: !controller.isYearly.value,
-                              onSelected: (val) => controller.isYearly.value = false,
+                              onSelected: (val) =>
+                                  controller.isYearly.value = false,
                             ),
                             const SizedBox(width: 10),
                             ChoiceChip(
                               label: const Text("Yearly (Save 20%)"),
                               selected: controller.isYearly.value,
                               selectedColor: Colors.green.shade100,
-                              onSelected: (val) => controller.isYearly.value = true,
+                              labelStyle: TextStyle(
+                                  color: controller.isYearly.value
+                                      ? Colors.green.shade800
+                                      : Colors.black),
+                              onSelected: (val) =>
+                                  controller.isYearly.value = true,
                             ),
                           ],
                         )),
@@ -374,79 +392,120 @@ class LandingScreen extends GetView<LandingController> {
                 ),
               ),
               const Divider(),
+              
               // Inputs
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text("Number of Employees"),
+                    const Text("Number of Employees",
+                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+                    // TextField needs Obx implicitly via controller? No, standard TextField.
+                    // But we initialize text with .value, which is fine.
                     TextField(
                       keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(border: OutlineInputBorder(), prefixIcon: Icon(Icons.people)),
-                      onChanged: (val) => controller.employeeCount.value = int.tryParse(val) ?? 1,
-                      controller: TextEditingController(text: controller.employeeCount.value.toString()),
+                      decoration: const InputDecoration(
+                          border: OutlineInputBorder(),
+                          hintText: "e.g. 10",
+                          prefixIcon: Icon(Icons.people)),
+                      onChanged: (val) => controller.employeeCount.value =
+                          int.tryParse(val) ?? 1,
+                      controller: TextEditingController(
+                          text: controller.employeeCount.value.toString()),
                     ),
-                    const SizedBox(height: 20),
-                    const Text("Number of Offices"),
-                    TextField(
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(border: OutlineInputBorder(), prefixIcon: Icon(Icons.business)),
-                      onChanged: (val) => controller.officeCount.value = int.tryParse(val) ?? 1,
-                      controller: TextEditingController(text: controller.officeCount.value.toString()),
-                    ),
-                    const SizedBox(height: 20),
-                    // Plan Features Dynamic List
-                    Obx(() => Column(
+                    const SizedBox(height: 30),
+                    
+                    // Plan Features (REMOVED Obx HERE - Static List)
+                    const Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _pricingFeature(true, "Android / iOS App"),
-                        _pricingFeature(true, "Face-Recognition"),
-                        _pricingFeature(true, "Geo-Fencing Capability"),
-                        _pricingFeature(controller.hasNotifications, "Notification Capability"),
-                        _pricingFeature(controller.hasShiftSystem, "Shift Management"),
-                        _pricingFeature(controller.hasPremiumSupport, "Premium Customer Support"),
-                        _pricingFeature(true, "${controller.reportDays} Days Attendance Reports"),
-                        _pricingFeature(true, "${controller.announcementCount} Announcements"),
-                        _pricingFeature(true, "${controller.adminCount} Admin Accounts"),
+                        Expanded(
+                          child: Column(
+                            children: [
+                              _FeatureRow("Android / iOS App"),
+                              _FeatureRow("Face-Recognition"),
+                              _FeatureRow("Geo-Fencing Capability"),
+                              _FeatureRow("Notification System"),
+                            ],
+                          ),
+                        ),
+                        SizedBox(width: 20),
+                        Expanded(
+                          child: Column(
+                            children: [
+                              _FeatureRow("Shift Management"),
+                              _FeatureRow("Unlimited Admin Accounts"),
+                              _FeatureRow("Unlimited History Reports"),
+                              _FeatureRow("Premium Support"),
+                            ],
+                          ),
+                        ),
                       ],
-                    )),
+                    ),
                   ],
                 ),
               ),
+              
               // Total Footer
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(30),
                 decoration: const BoxDecoration(
                   color: Color(0xFFf8f9fa),
-                  borderRadius: BorderRadius.vertical(bottom: Radius.circular(15)),
+                  borderRadius:
+                      BorderRadius.vertical(bottom: Radius.circular(15)),
                 ),
                 child: Column(
                   children: [
-                    Obx(() => Chip(
+                    // Plan Name is static string now, remove Obx
+                    Chip(
                       label: Text(controller.planName),
-                      backgroundColor: controller.planName == 'Standard' ? Colors.green : (controller.planName == 'Professional' ? Colors.orange : Colors.blue),
+                      backgroundColor: const Color(0xFF10B981),
                       labelStyle: const TextStyle(color: Colors.white),
-                    )),
+                    ),
                     const SizedBox(height: 10),
-                    Obx(() => Text(
-                      "GHC ${controller.pricePerEmployee.toStringAsFixed(2)}",
-                      style: const TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: Color(0xFF10B981)),
-                    )),
-                    const Text("per employee / month", style: TextStyle(color: Colors.grey)),
-                    const SizedBox(height: 10),
-                    Obx(() => Text(
-                      "Total billing: GHC ${controller.billingTotal.toStringAsFixed(2)} ${controller.isYearly.value ? '/ year' : '/ month'}",
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    )),
-                    const SizedBox(height: 20),
+                    
+                  
+                      // Total Billing Line (Keep Obx - depends on employeeCount & isYearly)
+                    Obx(() => Text( 
+                           "GHC ${controller.billingTotal.toStringAsFixed(2)} ${controller.isYearly.value ? '/ year' : '/ month'}",
+                          style: const TextStyle(
+                              fontSize: 40,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF10B981)),
+                        )),
+                  
+                    // Big Green Price Text (Keep Obx - price depends on isYearly)
+                    Obx(() => Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 20, vertical: 10),
+                          decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.grey.shade300)),
+                          child: Text( 
+                            "GHC ${controller.pricePerEmployeeDisplay.toStringAsFixed(2)}",
+                           
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 16),
+                          ),
+                        )),
+                          const Text("per employee / month",
+                        style: TextStyle(color: Colors.grey)),  
+                    const SizedBox(height: 25), 
                     SizedBox(
                       width: double.infinity,
                       height: 50,
                       child: ElevatedButton(
                         onPressed: () => Get.toNamed('/signup'),
-                        style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981)),
-                        child: const Text("Get Started", style: TextStyle(color: Colors.white, fontSize: 18)),
+                        style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF10B981)),
+                        child: const Text("Get Started Now",
+                            style:
+                                TextStyle(color: Colors.white, fontSize: 18)),
                       ),
                     ),
                   ],
@@ -458,7 +517,7 @@ class LandingScreen extends GetView<LandingController> {
       ),
     );
   }
-
+  
   Widget _pricingFeature(bool enabled, String text) {
     if (!enabled) return const SizedBox.shrink();
     return Padding(
@@ -473,36 +532,52 @@ class LandingScreen extends GetView<LandingController> {
     );
   }
 
-  // --- 7. CTA ---
+ 
+   // --- 7. CTA (With Background Image) ---
   Widget _buildCTASection() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(60),
-      // Optional: Add a background image here if available
-      // decoration: BoxDecoration(
-      //   image: DecorationImage(image: AssetImage('img/dashboard2.png'), fit: BoxFit.cover),
-      // ),
-      color: Colors.black, 
-      child: Column(
-        children: [
-          Text("Are You An HR?\nSign-Up For Free", 
-            textAlign: TextAlign.center,
-            style: GoogleFonts.kanit(color: Colors.white, fontSize: 40)
-          ),
-          const SizedBox(height: 30),
-          OutlinedButton(
-            onPressed: () => Get.toNamed('/signup'),
-            style: OutlinedButton.styleFrom(
-              side: const BorderSide(color: Colors.white),
-              padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15)
+      // 1. Remove the static 'color: Colors.black' and use decoration instead
+      decoration: const BoxDecoration(
+        image: DecorationImage(
+          // Replace with your actual asset path
+          image: AssetImage('img/dashboard2.png'), 
+          fit: BoxFit.cover,
+        ),
+      ),
+      child: Container(
+        // 2. Add a dark overlay so text pops
+        padding: const EdgeInsets.all(60),
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.7), // Darkens the image by 70%
+        ),
+        child: Column(
+          children: [
+            Text(
+              "Are You An HR?\nSign-Up For Free",
+              textAlign: TextAlign.center,
+              style: GoogleFonts.kanit(color: Colors.white, fontSize: 40),
             ),
-            child: const Text("Sign Up", style: TextStyle(color: Colors.white, fontSize: 20)),
-          )
-        ],
+            const SizedBox(height: 30),
+            OutlinedButton(
+              onPressed: () => Get.toNamed('/signup'),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: Colors.white, width: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30),
+                ),
+              ),
+              child: const Text(
+                "Sign Up Now",
+                style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+            )
+          ],
+        ),
       ),
     );
   }
-
   // --- 8. Download & Footer ---
   Widget _buildDownloadSection() {
     return Container(
@@ -557,6 +632,25 @@ class LandingScreen extends GetView<LandingController> {
       child: Image.asset(
         assetPath,
         height: 50,
+      ),
+    );
+  }
+}
+
+class _FeatureRow extends StatelessWidget {
+  final String text;
+  const _FeatureRow(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          const Icon(Icons.check_circle, color: Color(0xFF10B981), size: 20),
+          const SizedBox(width: 8),
+          Expanded(child: Text(text, style: const TextStyle(fontSize: 14))),
+        ],
       ),
     );
   }

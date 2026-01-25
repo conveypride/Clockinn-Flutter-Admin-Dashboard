@@ -1,7 +1,7 @@
+import 'package:clockinn_flutter_admin/controllers/subscription_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:google_fonts/google_fonts.dart';
-import '../../controllers/subscription_controller.dart';
+import 'package:google_fonts/google_fonts.dart'; 
 
 class SubscriptionScreen extends StatelessWidget {
   const SubscriptionScreen({super.key});
