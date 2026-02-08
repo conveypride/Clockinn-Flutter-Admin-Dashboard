@@ -260,6 +260,7 @@ Future<String> uploadFile(XFile file) async {
   // --- SAVE LOGIC ---
    // --- SAVE LOGIC ---
   void createFirstOffice() async {
+     // 1. Basic Validation
     if (siteNameCtrl.text.isEmpty) {
       Get.snackbar("Error", "Office Name is required");
       return;
@@ -273,58 +274,80 @@ Future<String> uploadFile(XFile file) async {
       isLoading.value = true;
       String uid = _auth.currentUser!.uid;
 
-      // 1. Get Company ID
+      // 2. Get Company ID from Admin Profile
       DocumentSnapshot adminDoc = await _db.collection('adminusers').doc(uid).get();
       String companyId = adminDoc['companyId'];
 
-      // 2. Upload Image
+      // ============================================================
+      // 🚀 LOGIC: AUTOMATIC HQ DETECTION
+      // ============================================================
+      // Fetch the company document to check how many sites exist
+      DocumentSnapshot companyDoc = await _db.collection('companies').doc(companyId).get();
+      int existingCount = 0;
+      
+      if (companyDoc.exists && companyDoc.data() != null) {
+        var data = companyDoc.data() as Map<String, dynamic>;
+        existingCount = data['countOperationSites'] ?? 0;
+      }
+
+      // If count is 0, this is the FIRST office => isHQ = true
+      // If count > 0, this is just another branch => isHQ = false
+      bool isHQ = existingCount == 0;
+      // ============================================================
+
+      // 3. Upload Image (if selected)
       String imageUrl = ""; 
       if (pickedImage != null) {
         imageUrl = await uploadFile(pickedImage!);
       }
 
-// CRITICAL FIX: Transform holidays to match DB format {"Name": "Date"}
-      // Your UI uses {"name": "X", "date": "Y"}, but DB wants {"X": "Y"}
+      // 4. Format Holidays
       List<Map<String, String>> formattedHolidays = holidays.map((h) {
         return { h['name']! : h['date']! }; 
       }).toList();
 
-      // 3. Save to Firestore (MATCHING YOUR EXACT VARIABLES)
+      // 5. Save to Firestore
       String siteId = _db.collection('operationSites').doc(companyId).collection('sites').doc().id;
 
       await _db.collection('operationSites').doc(companyId).collection('sites').doc(siteId).set({
         // Identity
         'nameofsite': siteNameCtrl.text.trim(),
-        'location': searchCtrl.text.isNotEmpty ? searchCtrl.text.trim() : siteNameCtrl.text.trim(), // Fallback to name if search empty
+        'location': searchCtrl.text.isNotEmpty ? searchCtrl.text.trim() : siteNameCtrl.text.trim(),
         
         // Time & Dates
         'openingTime': openTimeCtrl.text.trim(),
         'closingTime': closeTimeCtrl.text.trim(),
         'workingdays': workingDays,
-        // Use the transformed list here
         'holidaylist': formattedHolidays,
-        'datejoined': FieldValue.serverTimestamp(), // Matches "datejoined"
+        'datejoined': FieldValue.serverTimestamp(),
         
-        // Coordinates (Saved as Strings based on your structure)
+        // Coordinates
         'lat': latCtrl.text.trim(),
-        'lng': lngCtrl.text.trim(), // Standard Google format
-        'lon': lngCtrl.text.trim(), // Matches your "lon" variable requirement
-        'radius': selectedRadius.value, // Saved as number
+        'lng': lngCtrl.text.trim(),
+        'lon': lngCtrl.text.trim(),
+        'radius': selectedRadius.value,
         
         // Status & Assets
-        'isHQ': true, 
-        'status': true, // Active by default
-        'officeimage': imageUrl // Renamed from 'image' to 'officeimage'
+        'isHQ': isHQ, // <--- USES THE DETECTED VALUE
+        'status': true, 
+        'officeimage': imageUrl
       });
 
-      // 4. Update Company Document
+      // 6. Update Company Document (Increment Count & Add Name)
       await _db.collection('companies').doc(companyId).update({
         'countOperationSites': FieldValue.increment(1),
         'department': FieldValue.arrayUnion([siteNameCtrl.text.trim()])
       });
 
-      Get.offAllNamed('/dashboard');
-      Get.snackbar("Success", "Office set up successfully!");
+      // 7. Navigation
+      // If this was the first setup, go to dashboard. 
+      // If adding from dashboard, go back.
+      if (isHQ) {
+        Get.offAllNamed('/dashboard');
+      } else {
+        Get.back(); // Close the screen if adding a secondary office
+        Get.snackbar("Success", "New branch added successfully!");
+      }
 
     } catch (e) {
       Get.snackbar("Error", e.toString());

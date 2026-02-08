@@ -12,402 +12,363 @@ class ShiftManagementScreen extends StatelessWidget {
     final controller = Get.put(ShiftsController());
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showAddShiftDialog(context, controller),
-        label: const Text("Assign Shift"),
-        icon: const Icon(Icons.add_task),
-        backgroundColor: Colors.blueAccent,
-      ),
-      body: Column(
-        children: [
-          // --- 1. FILTER BAR (Site & Date) ---
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(10),
-              boxShadow: [
-                BoxShadow(color: Colors.grey.withOpacity(0.1), blurRadius: 10),
-              ],
+      backgroundColor: const Color(0xFFF1F5F9),
+      body: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          children: [
+            // --- HEADER ---
+            _buildHeader(controller),
+            const SizedBox(height: 10),
+            
+            // --- WEEK NAVIGATION ---
+            _buildWeekControls(controller),
+            const SizedBox(height: 10),
+
+            // --- ROSTER MATRIX ---
+            Expanded(
+              child: _buildRosterMatrix(controller),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Shift Management",
-                  style: GoogleFonts.inter(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 15),
-
-                // FILTERS ROW
-                Row(
-                  children: [
-                    // SITE DROPDOWN
-                    Expanded(
-                      flex: 2,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey.shade300),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Obx(
-                          () => DropdownButtonHideUnderline(
-                            child: DropdownButton<String>(
-                              value: controller.selectedSiteId.value,
-                              items: controller.availableSites.map((site) {
-                                return DropdownMenuItem(
-                                  value: site['id'],
-                                  child: Text(site['name']!),
-                                );
-                              }).toList(),
-                              onChanged: (val) {
-                                if (val != null) controller.changeSite(val);
-                              },
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 15),
-
-                    // DATE PICKER BUTTON
-                    Expanded(
-                      flex: 1,
-                      child: Obx(
-                        () => OutlinedButton.icon(
-                          onPressed: () async {
-                            DateTime? picked = await showDatePicker(
-                              context: context,
-                              initialDate: controller.selectedDate.value,
-                              firstDate: DateTime(2024),
-                              lastDate: DateTime(2030),
-                            );
-                            if (picked != null) controller.changeDate(picked);
-                          },
-                          icon: const Icon(Icons.calendar_today, size: 16),
-                          label: Text(
-                            DateFormat(
-                              'EEE, MMM d',
-                            ).format(controller.selectedDate.value),
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 18),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 20),
-
-          // --- 2. SHIFT LIST ---
-          Expanded(
-            child: Obx(() {
-              if (controller.isLoading.value)
-                return const Center(child: CircularProgressIndicator());
-
-              if (controller.displayedShifts.isEmpty) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.event_busy,
-                        size: 50,
-                        color: Colors.grey.shade300,
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        "No shifts scheduled for this day.",
-                        style: GoogleFonts.inter(color: Colors.grey),
-                      ),
-                    ],
-                  ),
-                );
-              }
-
-              return ListView.builder(
-                itemCount: controller.displayedShifts.length,
-                itemBuilder: (context, index) {
-                  return _buildShiftCard(
-                    controller.displayedShifts[index],
-                    controller,
-                  );
-                },
-              );
-            }),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildShiftCard(
-    Map<String, dynamic> shift,
-    ShiftsController controller,
-  ) {
-    DateTime start = DateTime.parse(shift['startTime']);
-    DateTime end = DateTime.parse(shift['endTime']);
-    String timeStr =
-        "${DateFormat('h:mm a').format(start)} - ${DateFormat('h:mm a').format(end)}";
-    int duration = end.difference(start).inHours;
+  // --- SAFE COLOR EXTRACTOR HELPER ---
+  int _getColor(dynamic colorData) {
+    if (colorData == null) return 0xFF2196F3; // Default Blue
+    if (colorData is int) return colorData;
+    if (colorData is double) return colorData.toInt();
+    // Fallback try parse
+    return int.tryParse(colorData.toString()) ?? 0xFF2196F3;
+  }
 
+  Widget _buildHeader(ShiftsController controller) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 15),
       padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border(
-          left: BorderSide(color: Color(shift['color']), width: 5),
-        ),
-        boxShadow: [
-          BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 5),
-        ],
-      ),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10)),
       child: Row(
         children: [
-          // TIME COLUMN
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                DateFormat('h:mm a').format(start),
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-              ),
-              Text(
-                DateFormat('h:mm a').format(end),
-                style: const TextStyle(color: Colors.grey, fontSize: 12),
-              ),
-            ],
-          ),
-          const SizedBox(width: 20),
-          Container(height: 40, width: 1, color: Colors.grey.shade200),
-          const SizedBox(width: 20),
-
-          // INFO COLUMN
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  shift['userName'],
-                  style: GoogleFonts.inter(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 15,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.blue.shade50,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        shift['userRole'],
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: Colors.blue.shade800,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Icon(
-                      Icons.access_time,
-                      size: 12,
-                      color: Colors.grey.shade400,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      "$duration Hrs",
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+          const Icon(Icons.calendar_month, color: Colors.blueAccent),
+          const SizedBox(width: 10),
+          Text("Weekly Roster", style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.bold)),
+          const Spacer(),
+          
+          // Site Dropdown
+          Obx(() => DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: controller.selectedSiteId.value.isEmpty ? null : controller.selectedSiteId.value,
+              hint: const Text("Select Site"),
+              items: controller.availableSites.map((s) => DropdownMenuItem(value: s['id'], child: Text(s['name']!))).toList(),
+              onChanged: (val) => controller.changeSite(val!),
             ),
-          ),
-
-          // ACTIONS
-          IconButton(
-            onPressed: () => controller.deleteShift(shift['id']),
-            icon: const Icon(Icons.delete_outline, color: Colors.red),
+          )),
+          const SizedBox(width: 20),
+          
+          // Copy Button
+          ElevatedButton.icon(
+            onPressed: controller.copyPreviousWeek,
+            icon: const Icon(Icons.copy, size: 16),
+            label: const Text("Copy Previous Week"),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.indigo, foregroundColor: Colors.white),
           ),
         ],
       ),
     );
   }
 
-  // --- ADD SHIFT DIALOG ---
-  void _showAddShiftDialog(BuildContext context, ShiftsController controller) {
-    
-    // Local State for selections
-    var selectedUsers = <Map<String, dynamic>>[].obs;
-    var startTime = const TimeOfDay(hour: 8, minute: 0).obs;
-    var endTime = const TimeOfDay(hour: 17, minute: 0).obs;
+  Widget _buildWeekControls(ShiftsController controller) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        IconButton(onPressed: controller.prevWeek, icon: const Icon(Icons.arrow_back_ios, size: 16)),
+        Obx(() {
+          DateTime start = controller.currentWeekStartDate.value;
+          DateTime end = start.add(const Duration(days: 6));
+          return Text(
+            "${DateFormat('MMM d').format(start)} - ${DateFormat('MMM d, yyyy').format(end)}",
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          );
+        }),
+        IconButton(onPressed: controller.nextWeek, icon: const Icon(Icons.arrow_forward_ios, size: 16)),
+      ],
+    );
+  }
 
-    Get.dialog(
-      Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        child: Container(
-          width: 500, // Wider for better visibility
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text("Bulk Shift Assignment", style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 5),
-              Text("Select all employees for this shift:", style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
-              const SizedBox(height: 15),
+  Widget _buildRosterMatrix(ShiftsController controller) {
+    return Obx(() {
+      if (controller.isLoading.value) return const Center(child: CircularProgressIndicator());
+      if (controller.siteEmployees.isEmpty) return const Center(child: Text("No employees found in this site."));
 
-              // 1. MULTI-SELECT USER LIST
-              Container(
-                height: 200, // Fixed height scrollable area
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey.shade300),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Obx(() {
-                  if (controller.eligibleEmployees.isEmpty) {
-                    return const Center(child: Text("No eligible shift workers found.", style: TextStyle(color: Colors.grey)));
-                  }
-                  
-                  return ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: controller.eligibleEmployees.length,
-                    itemBuilder: (context, index) {
-                      var emp = controller.eligibleEmployees[index];
-                      return Obx(() {
-                        bool isSelected = selectedUsers.contains(emp);
-                        return CheckboxListTile(
-                          title: Text(emp['name'], style: const TextStyle(fontWeight: FontWeight.w500)),
-                          subtitle: Text(emp['role'], style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                          value: isSelected,
-                          activeColor: Colors.blueAccent,
-                          onChanged: (val) {
-                            if (val == true) {
-                              selectedUsers.add(emp);
-                            } else {
-                              selectedUsers.remove(emp);
-                            }
-                          },
-                        );
-                      });
-                    },
-                  );
-                }),
-              ),
+      DateTime startOfWeek = controller.currentWeekStartDate.value;
+      List<DateTime> weekDays = List.generate(7, (i) => startOfWeek.add(Duration(days: i)));
 
-              const SizedBox(height: 10),
-              // Selection Counter
-              Obx(() => Text(
-                "${selectedUsers.length} employees selected", 
-                style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueAccent)
-              )),
-
-              const SizedBox(height: 20),
-
-              // 2. TIME PICKERS
-              Row(
+      return Card(
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        child: Column(
+          children: [
+            // HEADER
+            Container(
+              color: Colors.grey[100],
+              height: 50,
+              child: Row(
                 children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text("Start Time", style: TextStyle(fontSize: 12, color: Colors.grey)),
-                        const SizedBox(height: 5),
-                        Obx(() => OutlinedButton(
-                          onPressed: () async {
-                            final time = await showTimePicker(context: context, initialTime: startTime.value);
-                            if (time != null) startTime.value = time;
-                          },
-                          child: Text(startTime.value.format(context)),
-                        )),
-                      ],
+                  const SizedBox(width: 150, child: Center(child: Text("Employee", style: TextStyle(fontWeight: FontWeight.bold)))), 
+                  ...weekDays.map((d) => Expanded(
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(DateFormat('EEE').format(d), style: const TextStyle(fontWeight: FontWeight.bold)),
+                          Text(DateFormat('d').format(d), style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text("End Time", style: TextStyle(fontSize: 12, color: Colors.grey)),
-                        const SizedBox(height: 5),
-                        Obx(() => OutlinedButton(
-                          onPressed: () async {
-                            final time = await showTimePicker(context: context, initialTime: endTime.value);
-                            if (time != null) endTime.value = time;
-                          },
-                          child: Text(endTime.value.format(context)),
-                        )),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 25),
-
-              // 3. ACTIONS
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(
-                    onPressed: () => Get.back(), 
-                    child: const Text("Cancel", style: TextStyle(color: Colors.grey))
-                  ),
-                  const SizedBox(width: 10),
-                  Obx(() => ElevatedButton(
-                    onPressed: selectedUsers.isEmpty ? null : () {
-                      // Logic to calculate DateTimes
-                      DateTime date = controller.selectedDate.value;
-                      DateTime startDt = DateTime(date.year, date.month, date.day, startTime.value.hour, startTime.value.minute);
-                      DateTime endDt = DateTime(date.year, date.month, date.day, endTime.value.hour, endTime.value.minute);
-                      
-                      // Overnight logic
-                      if (endDt.isBefore(startDt)) {
-                        endDt = endDt.add(const Duration(days: 1));
-                      }
-
-                      controller.createBulkShifts(selectedUsers, startDt, endDt);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blueAccent,
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12)
-                    ),
-                    child: Text("Assign to ${selectedUsers.length} Users", style: const TextStyle(color: Colors.white)),
                   )),
                 ],
-              )
-            ],
-          ),
+              ),
+            ),
+            
+            // BODY
+            Expanded(
+              child: ListView.separated(
+                itemCount: controller.siteEmployees.length,
+                separatorBuilder: (_, __) => const Divider(height: 1),
+                itemBuilder: (context, index) {
+                  var emp = controller.siteEmployees[index];
+                  return SizedBox(
+                    height: 70, 
+                    child: Row(
+                      children: [
+                        // Name Column
+                        Container(
+                          width: 150,
+                          padding: const EdgeInsets.all(8),
+                          color: Colors.white,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(emp['name'] ?? "Unknown", style: const TextStyle(fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis),
+                              Text(emp['role'] ?? 'Staff', style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                            ],
+                          ),
+                        ),
+                        // Day Cells
+                        ...weekDays.map((date) {
+                          var shifts = controller.weeklyShifts.where((s) {
+                            DateTime sDate = DateTime.parse(s['startTime']);
+                            return s['userId'] == emp['id'] && 
+                                   sDate.year == date.year && 
+                                   sDate.month == date.month && 
+                                   sDate.day == date.day;
+                          }).toList();
+
+                          return Expanded(
+                            child: InkWell(
+                              onTap: () => _showShiftDialog(context, controller, emp, date, existingShift: shifts.isNotEmpty ? shifts.first : null),
+                              child: Container(
+                                decoration: BoxDecoration(border: Border(left: BorderSide(color: Colors.grey.shade200))),
+                                child: shifts.isEmpty 
+                                  ? const Center(child: Icon(Icons.add, size: 14, color: Colors.grey)) 
+                                  : _buildShiftChip(shifts.first), // Pass safe color logic here
+                              ),
+                            ),
+                          );
+                        })
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      );
+    });
+  }
+
+  Widget _buildShiftChip(Map<String, dynamic> shift) {
+    DateTime start = DateTime.parse(shift['startTime']);
+    DateTime end = DateTime.parse(shift['endTime']);
+    
+    // 🛠️ FIX: Safe Color Casting
+    int colorVal = _getColor(shift['color']);
+
+    return Container(
+      margin: const EdgeInsets.all(4),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+      decoration: BoxDecoration(
+        color: Color(colorVal).withOpacity(0.2), // Light background
+        borderRadius: BorderRadius.circular(4),
+        border: Border(left: BorderSide(color: Color(colorVal), width: 3)), // Solid border
+      ),
+      child: Center(
+        child: Text(
+          "${DateFormat('HH:mm').format(start)}\n${DateFormat('HH:mm').format(end)}",
+          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+          textAlign: TextAlign.center,
         ),
       ),
     );
+  }
+
+  // --- ADD / EDIT DIALOG ---
+  void _showShiftDialog(BuildContext context, ShiftsController controller, Map<String, dynamic> user, DateTime date, {Map<String, dynamic>? existingShift}) {
+    var startTime = const TimeOfDay(hour: 9, minute: 0).obs;
+    var endTime = const TimeOfDay(hour: 17, minute: 0).obs;
+    var selectedColor = 0xFF2196F3.obs;
+    var repeatWeeks = 1.obs;
+
+    if (existingShift != null) {
+      DateTime s = DateTime.parse(existingShift['startTime']);
+      DateTime e = DateTime.parse(existingShift['endTime']);
+      startTime.value = TimeOfDay(hour: s.hour, minute: s.minute);
+      endTime.value = TimeOfDay(hour: e.hour, minute: e.minute);
+      
+      // 🛠️ FIX: Safe Load Existing Color
+      selectedColor.value = _getColor(existingShift['color']);
+    }
+
+    Get.dialog(Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Container(
+        width: 400,
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(user['name'] ?? "Unknown", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    Text(DateFormat('EEEE, MMM d').format(date), style: const TextStyle(color: Colors.grey)),
+                  ],
+                ),
+                if (existingShift != null)
+                  IconButton(
+                    onPressed: () {
+                      Get.defaultDialog(
+                        title: "Delete Shift?",
+                        middleText: "Are you sure you want to remove this shift?",
+                        textConfirm: "Delete",
+                        confirmTextColor: Colors.white,
+                        buttonColor: Colors.red,
+                        onConfirm: () => controller.deleteShift(existingShift['id']),
+                      );
+                    },
+                    icon: const Icon(Icons.delete, color: Colors.red),
+                    tooltip: "Delete Shift",
+                  )
+              ],
+            ),
+            const Divider(height: 30),
+
+            // TEMPLATES
+            const Text("Quick Templates", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
+            const SizedBox(height: 8),
+            Obx(() => Wrap(
+              spacing: 8,
+              children: controller.shiftTemplates.map((t) {
+                // 🛠️ FIX: Visual feedback for selected template
+                bool isSelected = selectedColor.value == t['color'];
+                return ActionChip(
+                  avatar: isSelected ? const Icon(Icons.check, size: 14) : null,
+                  label: Text(t['name'] as String, style: TextStyle(fontSize: 11, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
+                  backgroundColor: Color(t['color'] as int).withOpacity(isSelected ? 0.4 : 0.1),
+                  side: isSelected ? BorderSide(color: Color(t['color'] as int), width: 2) : null,
+                  onPressed: () {
+                    var s = (t['start'] as String).split(":");
+                    var e = (t['end'] as String).split(":");
+                    startTime.value = TimeOfDay(hour: int.parse(s[0]), minute: int.parse(s[1]));
+                    endTime.value = TimeOfDay(hour: int.parse(e[0]), minute: int.parse(e[1]));
+                    selectedColor.value = t['color'] as int;
+                  },
+                );
+              }).toList(),
+            )),
+            const SizedBox(height: 20),
+
+            // TIME PICKERS
+            Row(
+              children: [
+                Expanded(
+                  child: Obx(() => OutlinedButton.icon(
+                    onPressed: () async {
+                      var t = await showTimePicker(context: Get.context!, initialTime: startTime.value);
+                      if (t != null) startTime.value = t;
+                    },
+                    icon: const Icon(Icons.access_time),
+                    label: Text(startTime.value.format(Get.context!)),
+                  )),
+                ),
+                const SizedBox(width: 10),
+                const Icon(Icons.arrow_forward, size: 16, color: Colors.grey),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Obx(() => OutlinedButton.icon(
+                    onPressed: () async {
+                      var t = await showTimePicker(context: Get.context!, initialTime: endTime.value);
+                      if (t != null) endTime.value = t;
+                    },
+                    icon: const Icon(Icons.access_time_filled),
+                    label: Text(endTime.value.format(Get.context!)),
+                  )),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 20),
+            if (existingShift == null) ...[
+              Obx(() => Row(
+                children: [
+                  Checkbox(
+                    value: repeatWeeks.value > 1, 
+                    onChanged: (val) => repeatWeeks.value = val! ? 4 : 1
+                  ),
+                  const Text("Repeat for next 4 weeks"),
+                ],
+              )),
+            ],
+
+            const SizedBox(height: 20),
+            
+            // 🛠️ FIX: Button Color = Selected Shift Color
+            SizedBox(
+              width: double.infinity,
+              child: Obx(() => ElevatedButton(
+                onPressed: () {
+                  controller.assignShift(
+                    userId: user['id'],
+                    userName: user['name'] ?? "Unknown",
+                    userRole: user['role'] ?? 'Staff',
+                    date: date,
+                    start: startTime.value,
+                    end: endTime.value,
+                    weeksToRepeat: repeatWeeks.value,
+                    color: selectedColor.value,
+                  );
+                },
+                // Use selected color for button background
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color(selectedColor.value), 
+                  padding: const EdgeInsets.symmetric(vertical: 16)
+                ),
+                child: Text(
+                  existingShift == null ? "Assign Shift" : "Update Shift", 
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)
+                ),
+              )),
+            )
+          ],
+        ),
+      ),
+    ));
   }
 }

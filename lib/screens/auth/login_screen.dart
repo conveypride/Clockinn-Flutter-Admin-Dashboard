@@ -1,4 +1,4 @@
- import 'package:clockinn_flutter_admin/controllers/login_controller.dart';
+import 'package:clockinn_flutter_admin/controllers/login_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart'; 
@@ -8,221 +8,138 @@ class LoginScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Inject the Controller
-    final LoginController controller = Get.put(LoginController());
+    final controller = Get.put(LoginController());
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA), // Light grey background
+      backgroundColor: const Color(0xFFF1F5F9), // Light Grey Background
       body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Container(
-            width: 900, // Wide card for Web
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 20,
-                  offset: const Offset(0, 5),
-                )
-              ],
-            ),
-            child: Row(
-              children: [
-                // LEFT SIDE: Branding / Visuals
-                Expanded(
-                  child: Container(
-                    height: 600,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF10B981), // ClockInn Green
-                      borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(20),
-                        bottomLeft: Radius.circular(20),
-                      ),
-                    ),
-                    padding: const EdgeInsets.all(40),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Icon(Icons.admin_panel_settings_outlined, size: 60, color: Colors.white),
-                        const SizedBox(height: 20),
-                        Text(
-                          "Welcome Back.",
-                          style: GoogleFonts.inter(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          "Sign in to manage your company, view attendance reports, and oversee employee productivity.",
-                          style: GoogleFonts.inter(
-                            fontSize: 16,
-                            color: Colors.white70,
-                            height: 1.5,
-                          ),
-                        ),
-                        const Spacer(),
-                        Text(
-                          "© 2026 ClockInn Global",
-                          style: GoogleFonts.inter(color: Colors.white54, fontSize: 12),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                // RIGHT SIDE: Login Form
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.all(50),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Admin Login",
-                          style: GoogleFonts.inter(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Text("New to ClockInn? ", style: GoogleFonts.inter(color: Colors.grey)),
-                            InkWell(
-                              onTap: () => Get.offNamed('/signup'), // Navigate to Signup
-                              child: Text("Create Account", 
-                                style: GoogleFonts.inter(
-                                  color: const Color(0xFF10B981), 
-                                  fontWeight: FontWeight.bold
-                                )
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 40),
-
-                        // Email Field
-                        _buildTextField(
-                          "Email Address", 
-                          controller.emailCtrl, 
-                          Icons.email_outlined
-                        ),
-                        
-                        const SizedBox(height: 20),
-                        
-                        // Password Field
-                        Obx(() => TextField(
-                          controller: controller.passwordCtrl,
-                          obscureText: !controller.isPasswordVisible.value,
-                          onSubmitted: (_) => controller.login(), // Login on Enter
-                          decoration: InputDecoration(
-                            labelText: "Password",
-                            prefixIcon: Icon(Icons.lock_outline, color: Colors.grey[500]),
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                controller.isPasswordVisible.value 
-                                  ? Icons.visibility 
-                                  : Icons.visibility_off,
-                                color: Colors.grey,
-                              ),
-                              onPressed: controller.togglePassword,
-                            ),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide: BorderSide(color: Colors.grey[300]!),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide: const BorderSide(color: Color(0xFF10B981), width: 2),
-                            ),
-                          ),
-                        )),
-
-                        const SizedBox(height: 10),
-
-                        // Forgot Password Link
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: InkWell(
-                            onTap: () => Get.toNamed('/forgot-password'),
-                            child: Text(
-                              "Forgot Password?",
-                              style: GoogleFonts.inter(
-                                color: const Color(0xFF10B981),
-                                fontWeight: FontWeight.w600,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ),
-                        ),
-
-                        const SizedBox(height: 40),
-
-                        // Login Button
-                        Obx(() => SizedBox(
-                          width: double.infinity,
-                          height: 50,
-                          child: ElevatedButton(
-                            onPressed: controller.isLoading.value ? null : controller.login,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF10B981),
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              elevation: 2,
-                            ),
-                            child: controller.isLoading.value
-                                ? const SizedBox(
-                                    width: 20, height: 20,
-                                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
-                                  )
-                                : Text(
-                                    "Sign In",
-                                    style: GoogleFonts.inter(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                          ),
-                        )),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
+        child: Container(
+          width: 450, // Fixed width for clean desktop look
+          padding: const EdgeInsets.all(40),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              )
+            ],
           ),
-        ),
-      ),
-    );
-  }
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // --- LOGO / TITLE ---
+              Center(
+                child: Column(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.admin_panel_settings, size: 40, color: Colors.blue),
+                    ),
+                    const SizedBox(height: 15),
+                    Text(
+                      "Admin Portal",
+                      style: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.bold, color: const Color(0xFF1E293B)),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      "Sign in to manage your workforce",
+                      style: GoogleFonts.inter(fontSize: 14, color: Colors.grey[500]),
+                    ),
+                  ],
+                ),
+              ),
+              
+              const SizedBox(height: 40),
 
-  Widget _buildTextField(String label, TextEditingController controller, IconData icon) {
-    return TextField(
-      controller: controller,
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(icon, color: Colors.grey[500]),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: Colors.grey[300]!),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: Colors.grey[300]!),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xFF10B981), width: 2),
+              // --- INPUT FIELDS ---
+              Text("Email Address", style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.grey[700])),
+              const SizedBox(height: 8),
+              TextField(
+                controller: controller.emailCtrl,
+                decoration: InputDecoration(
+                  hintText: "admin@company.com",
+                  prefixIcon: const Icon(Icons.email_outlined, size: 20),
+                  filled: true,
+                  fillColor: Colors.grey[50],
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 16),
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              Text("Password", style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.grey[700])),
+              const SizedBox(height: 8),
+              Obx(() => TextField(
+                controller: controller.passwordCtrl,
+                obscureText: !controller.isPasswordVisible.value,
+                decoration: InputDecoration(
+                  hintText: "••••••••",
+                  prefixIcon: const Icon(Icons.lock_outline, size: 20),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      controller.isPasswordVisible.value ? Icons.visibility : Icons.visibility_off,
+                      size: 20,
+                    ),
+                    onPressed: controller.togglePassword,
+                  ),
+                  filled: true,
+                  fillColor: Colors.grey[50],
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 16),
+                ),
+              )),
+
+              const SizedBox(height: 30),
+
+              // --- LOGIN BUTTON ---
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: Obx(() => ElevatedButton(
+                  onPressed: controller.isLoading.value ? null : controller.login,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF3B82F6), // Brand Blue
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    elevation: 0,
+                  ),
+                  child: controller.isLoading.value 
+                    ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    : Text("Sign In", style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.bold)),
+                )),
+              ),
+
+              const SizedBox(height: 25),
+
+              // --- FOOTER LINKS ---
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text("New Manager?", style: GoogleFonts.inter(color: Colors.grey[600], fontSize: 13)),
+                  TextButton(
+                    onPressed: () => Get.toNamed('/activate'), // Points to ActivateAccountScreen
+                    child: Text("Activate Account", style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 13)),
+                  ),
+                ],
+              ),
+              
+              Center(
+                child: TextButton(
+                  onPressed: () => Get.toNamed('/signup'), // Link to Company Registration
+                  child: Text("Register New Company", style: GoogleFonts.inter(color: Colors.grey[500], fontSize: 12)),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

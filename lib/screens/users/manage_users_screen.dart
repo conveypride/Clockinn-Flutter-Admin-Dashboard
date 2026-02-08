@@ -1,3 +1,4 @@
+import 'package:clockinn_flutter_admin/controllers/login_controller.dart'; // Import LoginController
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -6,328 +7,439 @@ import '../../controllers/manage_users_controller.dart';
 class ManageUsersScreen extends StatelessWidget {
   const ManageUsersScreen({super.key});
 
+  static const Color primaryBlue = Color(0xFF3B82F6);
+  static const Color primaryRed = Color(0xFFEF4444);
+  static const Color bgGrey = Color(0xFFF1F5F9);
+
   @override
   Widget build(BuildContext context) {
     final controller = Get.put(ManageUsersController());
 
-    return Column(
-      children: [
-        // --- HEADER & SEARCH ---
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(10),
-            boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.1), blurRadius: 10)],
-          ),
-          child: LayoutBuilder(builder: (context, constraints) {
-             bool isSmall = constraints.maxWidth < 600;
-             return Flex(
-              direction: isSmall ? Axis.vertical : Axis.horizontal,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text("Manage Users", style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 5),
-                    Text("View active employees, change roles, or manage access", style: GoogleFonts.inter(fontSize: 14, color: Colors.grey)),
-                  ],
-                ),
-                if(isSmall) const SizedBox(height: 15),
-                
-                // Search Field
-                SizedBox(
-                  width: isSmall ? double.infinity : 300,
-                  child: TextField(
-                    onChanged: (val) => controller.filterUsers(val),
-                    decoration: InputDecoration(
-                      hintText: "Search by name or email...",
-                      prefixIcon: const Icon(Icons.search, size: 20),
-                      isDense: true,
-                      contentPadding: const EdgeInsets.all(12),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+    return Scaffold(
+      backgroundColor: bgGrey,
+      body: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          children: [
+            _buildHeader(controller),
+            const SizedBox(height: 20),
+            
+            // --- TABS ---
+            Expanded(
+              child: Column(
+                children: [
+                  Container(
+                    width: 400,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey.shade200)
+                    ),
+                    child: TabBar(
+                      controller: controller.tabController,
+                      labelColor: primaryBlue,
+                      unselectedLabelColor: Colors.grey,
+                      indicatorColor: primaryBlue,
+                      indicatorPadding: const EdgeInsets.symmetric(horizontal: 20),
+                      tabs: const [
+                        Tab(text: "Employees"),
+                        Tab(text: "Management Team"),
+                      ],
                     ),
                   ),
-                ),
-              ],
-             );
-          }),
+                  const SizedBox(height: 15),
+                  Expanded(
+                    child: TabBarView(
+                      controller: controller.tabController,
+                      children: [
+                        _buildEmployeesTab(controller),
+                        _buildAdminsTab(controller, context),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
+      ),
+    );
+  }
 
-        const SizedBox(height: 20),
+  Widget _buildHeader(ManageUsersController controller) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 10)],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text("Team Management", style: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.bold)),
+              Text("Manage workforce, managers, and admins.", style: GoogleFonts.inter(color: Colors.grey)),
+            ],
+          ),
+          IconButton(
+            onPressed: () {
+              controller.loadEmployees(refresh: true);
+              controller.loadAdmins();
+            }, 
+            icon: const Icon(Icons.refresh, color: primaryBlue)
+          ),
+        ],
+      ),
+    );
+  }
 
-        // --- DATA LIST ---
+  // ===========================================================================
+  // TAB 1: EMPLOYEES (Standard)
+  // ===========================================================================
+  Widget _buildEmployeesTab(ManageUsersController controller) {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                onChanged: controller.onSearchChanged,
+                decoration: InputDecoration(
+                  hintText: "Search employee...",
+                  prefixIcon: const Icon(Icons.search),
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                ),
+              ),
+            ),
+            const SizedBox(width: 15),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
+              child: Obx(() => DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  value: controller.selectedSiteFilter.value,
+                  items: controller.availableSites.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+                  onChanged: controller.onFilterChanged,
+                ),
+              )),
+            ),
+          ],
+        ),
+        const SizedBox(height: 15),
+        
         Expanded(
           child: Obx(() {
-            if (controller.isLoading.value) {
-              return const Center(child: CircularProgressIndicator());
-            }
+            if (controller.isLoading.value) return const Center(child: CircularProgressIndicator());
+            if (controller.filteredEmployees.isEmpty) return const Center(child: Text("No employees found"));
 
-            if (controller.displayedUsers.isEmpty) {
-              return Center(child: Text("No users found.", style: GoogleFonts.inter(color: Colors.grey)));
-            }
-
-            // RESPONSIVE SWITCH
-            if (Get.width < 900) {
-              return ListView.builder(
-                itemCount: controller.displayedUsers.length,
-                itemBuilder: (context, index) => _buildMobileCard(controller.displayedUsers[index], controller),
-              );
-            } else {
-              return _buildDesktopTable(controller);
-            }
+            return ListView.separated(
+              itemCount: controller.filteredEmployees.length + 1,
+              separatorBuilder: (_,__) => const SizedBox(height: 10),
+              itemBuilder: (context, index) {
+                if (index == controller.filteredEmployees.length) {
+                  return Padding(
+                    padding: const EdgeInsets.all(20.0),
+                    child: Center(
+                      child: controller.hasMoreData.value 
+                        ? (controller.isLoadingMore.value 
+                            ? const CircularProgressIndicator()
+                            : TextButton.icon(
+                                onPressed: () => controller.loadEmployees(refresh: false),
+                                icon: const Icon(Icons.arrow_downward, size: 16),
+                                label: const Text("Load More Users"),
+                              ))
+                        : const Text("End of list", style: TextStyle(color: Colors.grey)),
+                    ),
+                  );
+                }
+                return _buildEmployeeCard(controller.filteredEmployees[index], controller, context);
+              },
+            );
           }),
         ),
       ],
     );
   }
 
-  // --- DESKTOP TABLE ---
-  Widget _buildDesktopTable(ManageUsersController controller) {
+  Widget _buildEmployeeCard(Map<String, dynamic> user, ManageUsersController controller, BuildContext context) {
     return Container(
-      width: double.infinity,
+      padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10)),
-      padding: const EdgeInsets.all(20),
-      child: SingleChildScrollView(
-        child: DataTable(
-          horizontalMargin: 0,
-          columnSpacing: 20,
-          headingRowColor: MaterialStateProperty.all(Colors.grey[50]),
-          dataRowMinHeight: 60,
-          dataRowMaxHeight: 70,
-          columns: const [
-            DataColumn(label: Text("User", style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(label: Text("Role", style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(label: Text("Site / Dept", style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(label: Text("Contact", style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(label: Text("Status", style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(label: Text("Actions", style: TextStyle(fontWeight: FontWeight.bold))),
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundImage: (user['picurl'] != null && user['picurl'] != "") ? NetworkImage(user['picurl']) : null,
+          child: (user['picurl'] == null || user['picurl'] == "") ? const Icon(Icons.person) : null,
+        ),
+        title: Text(user['name'] ?? "Unknown", style: const TextStyle(fontWeight: FontWeight.bold)),
+        subtitle: Text("${user['role']} • ${user['department'] ?? user['site']}"),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Switch(
+              value: user['isActive'] == true,
+              onChanged: (val) => controller.toggleStatus(user['id'], user['currentSiteId'], user['isActive']),
+            ),
+            const SizedBox(width: 10),
+            IconButton(
+              icon: const Icon(Icons.edit, color: Colors.blue),
+              tooltip: "Edit User",
+              onPressed: () => _showEditUserDialog(context, controller, user),
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete, color: primaryRed),
+              tooltip: "Delete User",
+              onPressed: () => controller.deleteUser(user['id'], user['currentSiteId']),
+            ),
           ],
-          rows: controller.displayedUsers.map((user) {
-            return DataRow(cells: [
-              // 1. User (Avatar + Name + Email)
-              DataCell(Row(
-                children: [
-                   CircleAvatar(
-                    radius: 18,
-                    backgroundColor: Colors.blue.shade50,
-                    backgroundImage: (user['picurl'] != "") ? NetworkImage(user['picurl']) : null,
-                    child: (user['picurl'] == "") ? Text(user['name'][0], style: const TextStyle(fontWeight: FontWeight.bold)) : null,
-                  ),
-                  const SizedBox(width: 10),
-                  Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(user['name'], style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                      Text(user['email'], style: const TextStyle(fontSize: 11, color: Colors.grey)),
-                    ],
-                  )
-                ],
-              )),
-              
-              // 2. Role (Colored Badge)
-              DataCell(_buildRoleBadge(user['role'])),
-
-              // 3. Site
-              DataCell(Text(user['department'])),
-
-              // 4. Contact
-              DataCell(Text(user['phone'])),
-
-              // 5. Status Toggle
-              DataCell(
-                InkWell(
-                  onTap: () => controller.toggleUserStatus(user['id'], user['isActive']),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: user['isActive'] ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      user['isActive'] ? "Active" : "Suspended",
-                      style: TextStyle(color: user['isActive'] ? Colors.green : Colors.red, fontSize: 11, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                )
-              ),
-
-              // 6. Actions (Edit / Delete)
-              DataCell(Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.edit_outlined, color: Colors.blue, size: 20), 
-                    onPressed: () => _showEditUserDialog(controller, user)
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20), 
-                    onPressed: () => controller.deleteUser(user['id'])
-                  ),
-                ],
-              )),
-            ]);
-          }).toList(),
         ),
       ),
     );
   }
 
-  // --- MOBILE CARD ---
-  Widget _buildMobileCard(Map<String, dynamic> user, ManageUsersController controller) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 15),
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: Colors.white, 
-        borderRadius: BorderRadius.circular(8),
-        boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 5)],
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              CircleAvatar(
-                radius: 24,
-                backgroundColor: Colors.blue.shade50,
-                backgroundImage: (user['picurl'] != "") ? NetworkImage(user['picurl']) : null,
-                child: (user['picurl'] == "") ? Text(user['name'][0]) : null,
-              ),
-              const SizedBox(width: 15),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(user['name'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                    Text(user['email'], style: const TextStyle(color: Colors.grey, fontSize: 12)),
-                  ],
-                ),
-              ),
-              // Status Badge
-               Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: user['isActive'] ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(user['isActive'] ? "Active" : "Suspended", style: TextStyle(color: user['isActive'] ? Colors.green : Colors.red, fontSize: 10)),
-              )
-            ],
-          ),
-          const SizedBox(height: 15),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                 const Text("Role", style: TextStyle(fontSize: 11, color: Colors.grey)),
-                 const SizedBox(height: 2),
-                 _buildRoleBadge(user['role']),
-               ]),
-               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                 const Text("Site", style: TextStyle(fontSize: 11, color: Colors.grey)),
-                 const SizedBox(height: 2),
-                 Text(user['department'], style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13)),
-               ]),
-            ],
-          ),
-          const Divider(height: 25),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              TextButton.icon(
-                onPressed: () => _showEditUserDialog(controller, user),
-                icon: const Icon(Icons.edit, size: 16),
-                label: const Text("Edit Profile"),
-              ),
-              TextButton.icon(
-                onPressed: () => controller.toggleUserStatus(user['id'], user['isActive']),
-                icon: Icon(user['isActive'] ? Icons.block : Icons.check_circle, size: 16, color: user['isActive'] ? Colors.orange : Colors.green),
-                label: Text(user['isActive'] ? "Suspend" : "Activate", style: TextStyle(color: user['isActive'] ? Colors.orange : Colors.green)),
-              ),
-            ],
-          )
-        ],
-      ),
-    );
-  }
-
-  // --- WIDGET HELPER: Role Badge ---
-  Widget _buildRoleBadge(String role) {
-    Color color;
-    switch (role) {
-      case "Super Admin": color = Colors.purple; break;
-      case "Branch Manager": color = Colors.orange; break;
-      case "Secretary": color = Colors.pink; break;
-      default: color = Colors.blue;
-    }
+  void _showEditUserDialog(BuildContext context, ManageUsersController controller, Map<String, dynamic> user) {
+    final nameCtrl = TextEditingController(text: user['name']);
+    String selectedRole = user['role'] ?? "Employee";
+    String selectedSite = user['department'] ?? user['site'] ?? "";
     
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        border: Border.all(color: color.withOpacity(0.5)),
-        borderRadius: BorderRadius.circular(4),
-        color: color.withOpacity(0.05)
-      ),
-      child: Text(role, style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.w600)),
-    );
-  }
-
-  // --- DIALOG: Edit User ---
-  void _showEditUserDialog(ManageUsersController controller, Map<String, dynamic> user) {
-    // Local state for the dialog inputs
-    var selectedRole = user['role'].toString().obs;
-    var selectedSite = user['department'].toString().obs;
+    if (!controller.availableSites.contains(selectedSite) && controller.availableSites.isNotEmpty) {
+       var realSites = controller.availableSites.where((s) => s != "All Offices").toList();
+       if (realSites.isNotEmpty) selectedSite = realSites.first;
+    }
 
     Get.defaultDialog(
-      title: "Edit User Profile",
-      contentPadding: const EdgeInsets.all(20),
-      radius: 8,
-      content: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text("Editing: ${user['name']}", style: const TextStyle(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 20),
-          
-          const Text("Assign Role:", style: TextStyle(fontSize: 12, color: Colors.grey)),
-          const SizedBox(height: 5),
-          Obx(() => Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(5)),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                isExpanded: true,
-                value: controller.availableRoles.contains(selectedRole.value) ? selectedRole.value : controller.availableRoles[0],
-                items: controller.availableRoles.map((r) => DropdownMenuItem(value: r, child: Text(r))).toList(),
-                onChanged: (val) => selectedRole.value = val!,
+      title: "Edit Employee",
+      content: StatefulBuilder(
+        builder: (context, setState) {
+          return Column(
+            children: [
+              TextField(
+                controller: nameCtrl, 
+                decoration: const InputDecoration(labelText: "Full Name", border: OutlineInputBorder())
               ),
-            ),
-          )),
-          
-          const SizedBox(height: 15),
-          
-          const Text("Assign Site / Department:", style: TextStyle(fontSize: 12, color: Colors.grey)),
-          const SizedBox(height: 5),
-          Obx(() => Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(5)),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                isExpanded: true,
-                value: controller.availableSites.contains(selectedSite.value) ? selectedSite.value : controller.availableSites[0],
-                items: controller.availableSites.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
-                onChanged: (val) => selectedSite.value = val!,
+              const SizedBox(height: 15),
+              DropdownButtonFormField<String>(
+                value: selectedRole,
+                decoration: const InputDecoration(labelText: "Role", border: OutlineInputBorder()),
+                items: const [
+                  DropdownMenuItem(value: "Employee", child: Text("Employee")),
+                  DropdownMenuItem(value: "Supervisor", child: Text("Supervisor")),
+                  DropdownMenuItem(value: "Manager", child: Text("Manager")), 
+                ],
+                onChanged: (val) => setState(() => selectedRole = val!),
               ),
-            ),
-          )),
-        ],
+              const SizedBox(height: 15),
+              DropdownButtonFormField<String>(
+                value: selectedSite,
+                decoration: const InputDecoration(labelText: "Office / Site", border: OutlineInputBorder()),
+                items: controller.availableSites.where((s) => s != "All Offices").map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+                onChanged: (val) => setState(() => selectedSite = val!),
+              ),
+            ],
+          );
+        }
       ),
-      textConfirm: "Save Changes",
-      textCancel: "Cancel",
+      textConfirm: "Update",
+      confirmTextColor: Colors.white,
+      onConfirm: () => controller.updateUser(user['id'], user['currentSiteId'], nameCtrl.text, selectedRole, selectedSite)
+    );
+  }
+
+  // ===========================================================================
+  // TAB 2: MANAGEMENT TEAM (RESTRICTED)
+  // ===========================================================================
+  Widget _buildAdminsTab(ManageUsersController controller, BuildContext context) {
+    final loginCtrl = Get.find<LoginController>();
+    String myRole = loginCtrl.userRole.value; // "Super Admin" or "Branch Manager"
+
+    return Column(
+      children: [
+        Align(
+          alignment: Alignment.centerRight,
+          child: ElevatedButton.icon(
+            onPressed: () => _showInviteAdminDialog(context, controller, myRole),
+            icon: const Icon(Icons.person_add),
+            label: const Text("Invite Manager / Admin"),
+            style: ElevatedButton.styleFrom(backgroundColor: primaryBlue, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15)),
+          ),
+        ),
+        const SizedBox(height: 15),
+        Expanded(
+          child: Obx(() {
+            if (controller.admins.isEmpty) return const Center(child: Text("No managers found."));
+            
+            return ListView.separated(
+              itemCount: controller.admins.length,
+              separatorBuilder: (_,__) => const SizedBox(height: 10),
+              itemBuilder: (context, index) {
+                var admin = controller.admins[index];
+                bool isPending = admin['isActivationPending'] == true;
+                String targetRole = admin['role'];
+
+                // 🔒 DELETE RESTRICTION: 
+                // Branch Managers cannot delete other Branch Managers (peers).
+                // They can only delete Secretaries.
+                bool canDelete = true;
+                if (myRole == "Branch Manager") {
+                  if (targetRole == "Branch Manager" || targetRole == "Super Admin") {
+                    canDelete = false; 
+                  }
+                }
+
+                return Container(
+                  padding: const EdgeInsets.all(15),
+                  decoration: BoxDecoration(
+                    color: Colors.white, 
+                    borderRadius: BorderRadius.circular(10),
+                    border: isPending ? Border.all(color: Colors.orange.shade200) : null
+                  ),
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: _getRoleColor(admin['role']).withOpacity(0.1),
+                      child: Icon(Icons.security, color: _getRoleColor(admin['role']), size: 18),
+                    ),
+                    title: Row(
+                      children: [
+                        Text(admin['adminname'] ?? "Unknown", style: const TextStyle(fontWeight: FontWeight.bold)),
+                        if (isPending)
+                          Container(
+                            margin: const EdgeInsets.only(left: 10),
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(color: Colors.orange.shade100, borderRadius: BorderRadius.circular(4)),
+                            child: const Text("PENDING", style: TextStyle(fontSize: 10, color: Colors.deepOrange, fontWeight: FontWeight.bold)),
+                          )
+                      ],
+                    ),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text("${admin['role']} • ${admin['email']}"),
+                        if (admin['siteName'] != null)
+                          Text("Managed Site: ${admin['siteName']}", style: TextStyle(color: Colors.blue.shade700, fontSize: 12)),
+                        if (isPending)
+                          SelectableText("Code: ${admin['activationCode']}", style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey)),
+                      ],
+                    ),
+                    trailing: canDelete 
+                      ? IconButton(
+                          icon: const Icon(Icons.delete, color: Colors.red),
+                          onPressed: () => _confirmDeleteAdmin(controller, admin),
+                        )
+                      : Tooltip(
+                          message: "You cannot delete this user",
+                          child: Icon(Icons.lock, color: Colors.grey.shade300, size: 20)
+                        ),
+                  ),
+                );
+              },
+            );
+          }),
+        ),
+      ],
+    );
+  }
+
+  Color _getRoleColor(String? role) {
+    if (role == "Super Admin") return Colors.purple;
+    if (role == "Branch Manager") return Colors.orange;
+    return Colors.pink;
+  }
+
+  // --- INVITE DIALOG (RESTRICTED) ---
+  void _showInviteAdminDialog(BuildContext context, ManageUsersController controller, String myRole) {
+    final nameCtrl = TextEditingController();
+    final emailCtrl = TextEditingController();
+    final phoneCtrl = TextEditingController();
+    
+    // Default Role based on permissions
+    // If I am a Manager, I can ONLY create Secretaries.
+    String selectedRole = myRole == "Branch Manager" ? "Secretary" : "Branch Manager";
+    String? selectedSiteId;
+    
+    // 🔒 RESTRICT DROPDOWN OPTIONS
+    List<DropdownMenuItem<String>> roleItems = [];
+    
+    if (myRole == "Super Admin") {
+      roleItems = const [
+        DropdownMenuItem(value: "Super Admin", child: Text("Super Admin")),
+        DropdownMenuItem(value: "Branch Manager", child: Text("Branch Manager")),
+        DropdownMenuItem(value: "Secretary", child: Text("Secretary")),
+      ];
+    } else {
+      // Branch Managers can ONLY add Secretaries
+      roleItems = const [
+        DropdownMenuItem(value: "Secretary", child: Text("Secretary")),
+      ];
+    }
+
+    Get.defaultDialog(
+      title: "Invite Management",
+      content: StatefulBuilder(builder: (context, setState) {
+        return Column(
+          children: [
+            TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: "Full Name", border: OutlineInputBorder())),
+            const SizedBox(height: 10),
+            TextField(controller: emailCtrl, decoration: const InputDecoration(labelText: "Email", border: OutlineInputBorder())),
+            const SizedBox(height: 10),
+            TextField(controller: phoneCtrl, decoration: const InputDecoration(labelText: "Phone", border: OutlineInputBorder())),
+            const SizedBox(height: 10),
+            
+            DropdownButtonFormField<String>(
+              value: selectedRole,
+              decoration: const InputDecoration(labelText: "Role", border: OutlineInputBorder()),
+              items: roleItems, // Uses restricted list
+              onChanged: (val) {
+                setState(() => selectedRole = val!);
+              },
+            ),
+            
+            if (selectedRole != "Super Admin") ...[
+              const SizedBox(height: 10),
+              DropdownButtonFormField<String>(
+                decoration: const InputDecoration(labelText: "Assign to Site", border: OutlineInputBorder()),
+                items: controller.availableSites.where((s) => s != "All Offices").map((name) {
+                  return DropdownMenuItem(value: name, child: Text(name));
+                }).toList(),
+                onChanged: (name) {
+                  selectedSiteId = name; 
+                },
+              ),
+            ],
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.all(10),
+              color: Colors.blue.shade50,
+              child: const Text("Note: An activation code will be generated. Share it with the user to let them set their own password.", style: TextStyle(fontSize: 12)),
+            )
+          ],
+        );
+      }),
+      textConfirm: "Generate Invite",
       confirmTextColor: Colors.white,
       onConfirm: () {
-        controller.updateUser(user['id'], selectedRole.value, selectedSite.value);
+        controller.inviteAdminUser(
+          name: nameCtrl.text,
+          email: emailCtrl.text,
+          phone: phoneCtrl.text,
+          role: selectedRole,
+          siteId: selectedSiteId
+        );
       }
     );
   }
-}
+
+  void _confirmDeleteAdmin(ManageUsersController controller, Map<String, dynamic> admin) {
+    Get.defaultDialog(
+      title: "Remove User?",
+      middleText: "This will remove access for ${admin['adminname']}.",
+      textConfirm: "Delete",
+      confirmTextColor: Colors.white,
+      buttonColor: Colors.red,
+      onConfirm: () => controller.deleteAdmin(admin['id'], admin['isActivationPending'] == true),
+    );
+  }
+} 

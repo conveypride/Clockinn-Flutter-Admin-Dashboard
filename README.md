@@ -6,11 +6,15 @@ A new Flutter project.
 
 <!--=== ALWAYS REMEMEBER TO INJECT THE GOOGLE MAP API KEY WHEN RUNNING OR DEPLOYING THIS APP LIKE THIS === -->
 <!-- FOR TESTING -->
-flutter run -d chrome --dart-define=MAPS_API_KEY=AIzaSyB87_uR_oZbh504BGowBOPR6Y_nQDo2LeQ --web-port=54254
+
 <!-- FOR PRODUCTION -->
 flutter build web --dart-define=MAPS_API_KEY=AIzaSyB...YourKey
  <!--===END OF  ALWAYS REMEMEBER TO INJECT THE GOOGLE MAP API KEY WHEN RUNNING OR DEPLOYING THIS APP LIKE THIS === -->
 
+<!-- =========================== -->
+
+firebase functions:secrets:set PAYSTACK_SECRET
+<!-- ================================ -->
 
 <!-- DATA STRUCTURE -->
 ROOT

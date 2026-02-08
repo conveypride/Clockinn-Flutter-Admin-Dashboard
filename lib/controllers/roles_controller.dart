@@ -1,17 +1,20 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'login_controller.dart'; 
 
 class RolesController extends GetxController {
   var isLoading = true.obs;
 
-  // The predefined Roles in your system
-  var roles = [
-    {"name": "Super Admin", "users": 1, "color": 0xFF9C27B0}, // Purple
-    {"name": "Branch Manager", "users": 5, "color": 0xFFFF9800}, // Orange
-    {"name": "Secretary", "users": 3, "color": 0xFFE91E63}, // Pink
-    {"name": "Employee", "users": 120, "color": 0xFF2196F3}, // Blue
+  // 1. Roles Definition (No Counts)
+  var roles = <Map<String, dynamic>>[
+    {"name": "Super Admin", "color": 0xFF9C27B0},   
+    {"name": "Branch Manager", "color": 0xFFFF9800}, 
+    {"name": "Secretary", "color": 0xFFE91E63},     
+    {"name": "Employee", "color": 0xFF2196F3},      
   ].obs;
 
-  // The List of System Permissions
+  // 2. Permissions List
   final List<String> allPermissions = [
     "View Dashboard Stats",
     "Manage Operation Sites",
@@ -19,74 +22,100 @@ class RolesController extends GetxController {
     "Manage Employees (Edit/Delete)",
     "Edit Shifts & Rosters",
     "Send Announcements",
-    "View All Companies", // Super Admin only
+    "View All Companies", 
     "Access Billing & Subscription",
   ];
 
-  // The "Matrix" - Which role has which permission
-  // Key: Role Name, Value: List of enabled permissions
-  var rolePermissions = <String, List<String>>{}.obs;
+  var rolePermissions = <String, List<dynamic>>{}.obs;
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
 
   @override
   void onInit() {
     super.onInit();
-    loadPermissions();
+    loadData();
   }
 
-  void loadPermissions() async {
+  void loadData() async {
     isLoading.value = true;
-    await Future.delayed(const Duration(seconds: 1));
+    try {
+      String companyId = Get.find<LoginController>().companyId.value;
+      if (companyId.isEmpty) return;
 
-    // MOCK DATA: Initial Setup
-    rolePermissions.value = {
-      "Super Admin": [
-        "View Dashboard Stats",
-        "Manage Operation Sites",
-        "Verify New Users",
-        "Manage Employees (Edit/Delete)",
-        "Edit Shifts & Rosters",
-        "Send Announcements",
-        "View All Companies",
-        "Access Billing & Subscription",
-      ],
+      var configDoc = await _db.collection('users')
+          .doc(companyId)
+          .collection('config')
+          .doc('roles')
+          .get();
+
+      if (configDoc.exists && configDoc.data() != null) {
+        Map<String, dynamic> data = configDoc.data()!;
+        Map<String, List<dynamic>> parsed = {};
+        data.forEach((key, value) {
+          parsed[key] = List<String>.from(value);
+        });
+        rolePermissions.value = parsed;
+      } else {
+        _applyDefaultPermissions(companyId);
+      }
+    } catch (e) {
+      debugPrint("Error loading roles: $e");
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<void> _applyDefaultPermissions(String companyId) async {
+    // MANAGER now gets almost everything (scoped later in other controllers)
+    var defaults = {
+      "Super Admin": allPermissions, // Full Access
       "Branch Manager": [
-        "View Dashboard Stats",
-        "Verify New Users",
+        "View Dashboard Stats", 
+        "Verify New Users", 
         "Manage Employees (Edit/Delete)",
-        "Edit Shifts & Rosters",
-        "Send Announcements",
+        "Edit Shifts & Rosters", 
+        "Send Announcements"
       ],
       "Secretary": [
-        "View Dashboard Stats",
-        "Verify New Users",
-        "Send Announcements",
+        "View Dashboard Stats", "Verify New Users", "Send Announcements"
       ],
-      "Employee": [
-        // Usually employees have no admin permissions
-      ],
+      "Employee": <String>[],
     };
 
-    isLoading.value = false;
+    rolePermissions.value = defaults;
+    
+    await _db.collection('users')
+        .doc(companyId)
+        .collection('config')
+        .doc('roles')
+        .set(defaults);
   }
 
-  void togglePermission(String role, String permission) {
-    // 1. Create a copy of the list to trigger reactivity
-    List<String> currentPerms = List.from(rolePermissions[role] ?? []);
+  void togglePermission(String role, String permission) async {
+    // Lock Super Admin to prevent lockout
+    if (role == "Super Admin") return; 
+
+    List<String> currentPerms = List<String>.from(rolePermissions[role] ?? []);
 
     if (currentPerms.contains(permission)) {
       currentPerms.remove(permission);
     } else {
       currentPerms.add(permission);
     }
-
-    // 2. Update the map
+    
     rolePermissions[role] = currentPerms;
+    rolePermissions.refresh();
 
-    // 3. (Real App) Here you would update Firestore Security Rules or a 'roles' collection
-    Get.snackbar(
-      "Updated",
-      "$role permission changed",
-      duration: const Duration(seconds: 1),
-    );
+    try {
+      String companyId = Get.find<LoginController>().companyId.value;
+      await _db.collection('users')
+          .doc(companyId)
+          .collection('config')
+          .doc('roles')
+          .update({ role: currentPerms });
+      
+      Get.snackbar("Saved", "Permissions updated");
+    } catch (e) {
+      Get.snackbar("Error", "Failed to save");
+    }
   }
 }

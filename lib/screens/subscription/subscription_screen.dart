@@ -1,7 +1,8 @@
-import 'package:clockinn_flutter_admin/controllers/subscription_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:google_fonts/google_fonts.dart'; 
+import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
+import '../../controllers/subscription_controller.dart';
 
 class SubscriptionScreen extends StatelessWidget {
   const SubscriptionScreen({super.key});
@@ -10,219 +11,302 @@ class SubscriptionScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final controller = Get.put(SubscriptionController());
 
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // --- HEADER & TOGGLE ---
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(10),
-              boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.1), blurRadius: 10)],
-            ),
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
+    return Scaffold(
+      backgroundColor: const Color(0xFFF1F5F9),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(30.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // --- HEADER ---
+            Text("Subscription & Billing", style: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 5),
+            Text("Simple per-employee pricing. Scale as you grow.", style: GoogleFonts.inter(color: Colors.grey)),
+            const SizedBox(height: 30),
+
+            // Main Loading Check
+            Obx(() {
+              if (controller.isLoading.value) return const Center(child: CircularProgressIndicator());
+              
+              return LayoutBuilder(
+                builder: (context, constraints) {
+                  bool isWide = constraints.maxWidth > 900;
+                  
+                  if (isWide) {
+                    return Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text("Subscription Plan", style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 5),
-                        Text("Manage your billing and plan preferences", style: GoogleFonts.inter(fontSize: 14, color: Colors.grey)),
+                        Expanded(
+                          flex: 2,
+                          child: Column(
+                            children: [
+                              _buildCurrentPlanCard(controller),
+                              const SizedBox(height: 20),
+                              // 🛠️ Note: This widget now has internal Obx
+                              _buildBillingCalculator(controller),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 30),
+                        Expanded(
+                          flex: 1,
+                          // 🛠️ Note: This widget now has internal Obx
+                          child: _buildPaymentSummary(controller),
+                        ),
                       ],
-                    ),
-                    // BILLING CYCLE TOGGLE
-                    Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(50)),
-                      child: Obx(() => Row(
-                        children: [
-                          _buildToggleOption(controller, "Monthly", false),
-                          _buildToggleOption(controller, "Yearly (-20%)", true),
-                        ],
-                      )),
-                    )
-                  ],
+                    );
+                  } else {
+                    return Column(
+                      children: [
+                        _buildCurrentPlanCard(controller),
+                        const SizedBox(height: 20),
+                        _buildBillingCalculator(controller),
+                        const SizedBox(height: 30),
+                        _buildPaymentSummary(controller),
+                      ],
+                    );
+                  }
+                }
+              );
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // --- WIDGETS ---
+
+  Widget _buildCurrentPlanCard(SubscriptionController controller) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.blue.withOpacity(0.1)),
+        boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 10)],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(15),
+            decoration: BoxDecoration(color: Colors.blue.shade50, shape: BoxShape.circle),
+            child: const Icon(Icons.verified, color: Colors.blueAccent, size: 28),
+          ),
+          const SizedBox(width: 20),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "All-Inclusive Plan", 
+                  style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 18),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  "Next billing: ${DateFormat('MMM d, yyyy').format(controller.nextBillingDate.value)}",
+                  style: GoogleFonts.inter(fontSize: 13, color: Colors.grey),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
           ),
-
-          const SizedBox(height: 30),
-
-          // --- PRICING CARDS ---
-          Obx(() {
-            if (controller.isLoading.value) return const Center(child: CircularProgressIndicator());
-            
-            // Responsive Grid
-            double width = MediaQuery.of(context).size.width;
-            int crossAxisCount = width > 1100 ? 3 : width > 700 ? 2 : 1;
-            
-            return GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: crossAxisCount,
-                crossAxisSpacing: 20,
-                mainAxisSpacing: 20,
-                childAspectRatio: width > 1100 ? 0.8 : 1.2, // Adjust card height
-              ),
-              itemCount: controller.plans.length,
-              itemBuilder: (context, index) {
-                return _buildPlanCard(controller.plans[index], controller);
-              },
-            );
-          }),
-
-          const SizedBox(height: 40),
-
-          // --- BILLING HISTORY ---
-          Text("Billing History", style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 15),
+          const SizedBox(width: 10),
           Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10)),
-            child: Obx(() => DataTable(
-              horizontalMargin: 0,
-              columnSpacing: 20,
-              columns: const [
-                DataColumn(label: Text("Invoice ID", style: TextStyle(fontWeight: FontWeight.bold))),
-                DataColumn(label: Text("Date", style: TextStyle(fontWeight: FontWeight.bold))),
-                DataColumn(label: Text("Amount", style: TextStyle(fontWeight: FontWeight.bold))),
-                DataColumn(label: Text("Status", style: TextStyle(fontWeight: FontWeight.bold))),
-                DataColumn(label: Text("Download", style: TextStyle(fontWeight: FontWeight.bold))),
-              ],
-              rows: controller.billingHistory.map((inv) {
-                return DataRow(cells: [
-                  DataCell(Text(inv['id'], style: const TextStyle(fontWeight: FontWeight.w500))),
-                  DataCell(Text(inv['date'])),
-                  DataCell(Text("\$${inv['amount'].toStringAsFixed(2)}")),
-                  DataCell(
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: inv['status'] == "Paid" ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(4)
-                      ),
-                      child: Text(inv['status'], style: TextStyle(fontSize: 11, color: inv['status'] == "Paid" ? Colors.green : Colors.red, fontWeight: FontWeight.bold)),
-                    )
-                  ),
-                  DataCell(IconButton(icon: const Icon(Icons.download, size: 18, color: Colors.grey), onPressed: (){})),
-                ]);
-              }).toList(),
-            )),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(color: Colors.green.shade50, borderRadius: BorderRadius.circular(20)),
+            child: Text(controller.status.value.toUpperCase(), style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 12)),
           )
         ],
       ),
     );
   }
 
-  // --- WIDGET: Pricing Card ---
-  Widget _buildPlanCard(Map<String, dynamic> plan, SubscriptionController controller) {
-    bool isYearly = controller.isYearly.value;
-    int price = isYearly ? plan['yearlyPrice'] as int : plan['monthlyPrice'] as int;
-    String period = isYearly ? "/year" : "/mo";
-    
-    // Check if this is the active plan
-    String checkId = "${plan['id']}_${isYearly ? 'yearly' : 'monthly'}";
-    bool isCurrent = controller.currentPlanId.value.contains(plan['id'] as String); // Simple check
-
+  Widget _buildBillingCalculator(SubscriptionController controller) {
     return Container(
       padding: const EdgeInsets.all(30),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
-        border: isCurrent ? Border.all(color: Color(plan['color'] as int), width: 2) : Border.all(color: Colors.grey.shade200),
+        borderRadius: BorderRadius.circular(12),
         boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 10)],
       ),
-      child: Column(
+      // 🛠️ FIX: Added Obx here so the toggle redraws the UI immediately
+      child: Obx(() => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (isCurrent) 
-            Container(
-              margin: const EdgeInsets.only(bottom: 10),
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(color: Color(plan['color'] as int).withOpacity(0.1), borderRadius: BorderRadius.circular(4)),
-              child: Text("CURRENT PLAN", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(plan['color'] as int))),
+          Text("Billing Configuration", style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 20),
+          
+          // BILLING CYCLE TOGGLE
+          Container(
+            padding: const EdgeInsets.all(5),
+            decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(8)),
+            child: Row(
+              children: [
+                Expanded(child: _buildToggleOption("Monthly", !controller.isYearly.value, () => controller.toggleBillingCycle(false))),
+                Expanded(child: _buildToggleOption("Yearly (Save 20%)", controller.isYearly.value, () => controller.toggleBillingCycle(true))),
+              ],
             ),
-            
-          Text(plan['name'] as String, style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey.shade700)),
-          const SizedBox(height: 10),
+          ),
+          
+          const SizedBox(height: 30),
+          
           Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text("\$$price", style: GoogleFonts.inter(fontSize: 36, fontWeight: FontWeight.bold, color: Colors.black)),
-              Text(period, style: TextStyle(color: Colors.grey.shade500, fontSize: 16)),
+              Text("Active Employees", style: GoogleFonts.inter(color: Colors.grey[600])),
+              Text("${controller.employeeCount.value}", style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 18)),
             ],
           ),
-          const SizedBox(height: 20),
-          const Divider(),
-          const SizedBox(height: 20),
-          // Features List
-          Expanded(
-            child: ListView(
-              physics: const NeverScrollableScrollPhysics(),
-              children: (plan['features'] as List<String>).map((feature) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Row(
-                    children: [
-                      Icon(Icons.check_circle, size: 18, color: Color(plan['color'] as int)),
-                      const SizedBox(width: 10),
-                      Expanded(child: Text(feature, style: const TextStyle(fontSize: 13))),
-                    ],
-                  ),
-                );
-              }).toList(),
-            ),
+          const Divider(height: 30),
+          
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(child: Text("Rate per User", style: GoogleFonts.inter(color: Colors.grey[600]))),
+              Flexible(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                      if (controller.isYearly.value)
+                        Text("GHC 30.00  ", style: TextStyle(decoration: TextDecoration.lineThrough, color: Colors.grey[400], fontSize: 12)),
+                      Text("GHC ${controller.pricePerUserDisplay.toStringAsFixed(2)}", style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              )
+            ],
           ),
-          const SizedBox(height: 20),
-          SizedBox(
-            width: double.infinity,
-            height: 45,
-            child: ElevatedButton(
-              onPressed: isCurrent ? null : () => controller.upgradePlan(plan['id'] as String),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: isCurrent ? Colors.grey.shade300 : Color(plan['color'] as int),
-                elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))
-              ),
-              child: Text(
-                isCurrent ? "Active" : "Upgrade", 
-                style: TextStyle(color: isCurrent ? Colors.grey : Colors.white, fontWeight: FontWeight.bold)
-              ),
-            ),
-          )
         ],
+      )),
+    );
+  }
+
+  Widget _buildToggleOption(String text, bool isSelected, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.white : Colors.transparent,
+          borderRadius: BorderRadius.circular(6),
+          boxShadow: isSelected ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4)] : [],
+        ),
+        child: Center(
+          child: Text(text, 
+            style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.normal, color: isSelected ? Colors.blueAccent : Colors.grey),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
       ),
     );
   }
 
-  // --- WIDGET: Toggle Button ---
-  Widget _buildToggleOption(SubscriptionController controller, String text, bool isYearlyOption) {
-    bool isActive = controller.isYearly.value == isYearlyOption;
-    return GestureDetector(
-      onTap: () => controller.toggleBillingCycle(isYearlyOption),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-        decoration: BoxDecoration(
-          color: isActive ? Colors.white : Colors.transparent,
-          borderRadius: BorderRadius.circular(50),
-          boxShadow: isActive ? [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4)] : [],
-        ),
-        child: Text(
-          text, 
-          style: TextStyle(
-            fontWeight: FontWeight.bold, 
-            color: isActive ? Colors.black : Colors.grey,
-            fontSize: 13
-          )
-        ),
+  Widget _buildPaymentSummary(SubscriptionController controller) {
+    return Container(
+      padding: const EdgeInsets.all(30),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E293B), // Dark Navy
+        borderRadius: BorderRadius.circular(16),
+      ),
+      // 🛠️ FIX: Added Obx here so the summary redraws when toggle changes
+      child: Obx(() => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text("Order Summary", style: GoogleFonts.inter(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 20),
+          
+          _buildSummaryRow("Employees", "${controller.employeeCount.value}"),
+          _buildSummaryRow("Cycle", controller.isYearly.value ? "Yearly" : "Monthly"),
+          
+          if (controller.monthsOverdue > 0) ...[
+              const SizedBox(height: 15),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade900.withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.redAccent.withOpacity(0.5))
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.warning_amber_rounded, color: Colors.orangeAccent, size: 16),
+                        const SizedBox(width: 5),
+                        Text("Past Due: ${controller.monthsOverdue} Months", style: const TextStyle(color: Colors.orangeAccent, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text("Arrears Cost", style: TextStyle(color: Colors.white70)),
+                        Text("GHC ${NumberFormat("#,##0").format(controller.arrearsCost)}", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      ],
+                    )
+                  ],
+                ),
+              )
+          ],
+
+          const Divider(color: Colors.white12, height: 30),
+          
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text("Total Due", style: GoogleFonts.inter(color: Colors.white, fontSize: 16)),
+              Flexible(
+                child: Text(
+                  "GHC ${NumberFormat("#,##0.00").format(controller.totalDueNow)}",
+                  style: GoogleFonts.inter(color: Colors.greenAccent, fontSize: 24, fontWeight: FontWeight.bold),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          
+          if (controller.isYearly.value) ...[
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(4)),
+              child: Center(
+                child: Text(
+                  "You save GHC ${NumberFormat("#,##0").format(controller.yearlySavings)} on the new cycle!",
+                  style: const TextStyle(color: Colors.orangeAccent, fontSize: 12),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+          ],
+
+          const SizedBox(height: 30),
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: ElevatedButton(
+              onPressed: controller.updateSubscription,
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
+              child: const Text("Update Subscription", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
+          ),
+        ],
+      )),
+    );
+  }
+
+  Widget _buildSummaryRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(color: Colors.white70)),
+          Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        ],
       ),
     );
   }

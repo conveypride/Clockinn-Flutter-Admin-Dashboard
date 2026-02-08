@@ -10,56 +10,66 @@ class RolesScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final controller = Get.put(RolesController());
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // --- HEADER ---
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(10),
-            boxShadow: [
-              BoxShadow(color: Colors.grey.withOpacity(0.1), blurRadius: 10),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "Roles & Permissions",
-                style: GoogleFonts.inter(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
+    return Scaffold( // Wrapped in Scaffold for safety, though usually part of a layout
+      backgroundColor: const Color(0xFFF1F5F9),
+      body: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // --- HEADER ---
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 10),
+                ],
               ),
-              const SizedBox(height: 5),
-              Text(
-                "Define what each role can access in the Admin Dashboard",
-                style: GoogleFonts.inter(fontSize: 14, color: Colors.grey),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Roles & Permissions",
+                    style: GoogleFonts.inter(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    "Configure access levels for your team members.",
+                    style: GoogleFonts.inter(fontSize: 14, color: Colors.grey),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+
+            const SizedBox(height: 20),
+
+            // --- CONTENT ---
+            Expanded(
+              child: Obx(() {
+                if (controller.isLoading.value) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                // RESPONSIVE LAYOUT
+                return LayoutBuilder(
+                  builder: (context, constraints) {
+                    if (constraints.maxWidth < 1000) {
+                      return _buildMobileView(controller);
+                    } else {
+                      return _buildDesktopMatrix(controller);
+                    }
+                  }
+                );
+              }),
+            ),
+          ],
         ),
-
-        const SizedBox(height: 20),
-
-        // --- CONTENT ---
-        Expanded(
-          child: Obx(() {
-            if (controller.isLoading.value) {
-              return const Center(child: CircularProgressIndicator());
-            }
-
-            // RESPONSIVE LAYOUT
-            if (Get.width < 1000) {
-              return _buildMobileView(controller);
-            } else {
-              return _buildDesktopMatrix(controller);
-            }
-          }),
-        ),
-      ],
+      ),
     );
   }
 
@@ -71,7 +81,7 @@ class RolesScreen extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: SingleChildScrollView(
         child: Table(
@@ -80,7 +90,7 @@ class RolesScreen extends StatelessWidget {
             verticalInside: BorderSide(color: Colors.grey.shade100, width: 1),
           ),
           columnWidths: const {
-            0: FlexColumnWidth(2), // Permission Name Column is wider
+            0: FlexColumnWidth(2.5), // Permission Name Column is wider
           },
           defaultVerticalAlignment: TableCellVerticalAlignment.middle,
           children: [
@@ -88,41 +98,43 @@ class RolesScreen extends StatelessWidget {
             TableRow(
               decoration: BoxDecoration(color: Colors.grey.shade50),
               children: [
-                const Padding(
-                  padding: EdgeInsets.all(16.0),
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
                   child: Text(
                     "PERMISSION",
-                    style: TextStyle(
+                    style: GoogleFonts.inter(
                       fontWeight: FontWeight.bold,
-                      color: Colors.grey,
+                      color: Colors.grey[700],
+                      fontSize: 12
                     ),
                   ),
                 ),
                 for (var role in controller.roles)
                   Container(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
                     alignment: Alignment.center,
                     child: Column(
                       children: [
                         Text(
                           role['name'] as String,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
+                          style: GoogleFonts.inter(fontWeight: FontWeight.bold),
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 4),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
+                            horizontal: 8,
+                            vertical: 3,
                           ),
                           decoration: BoxDecoration(
                             color: Color(role['color'] as int).withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(4),
+                            borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
                             "${role['users']} Users",
                             style: TextStyle(
                               fontSize: 10,
+                              fontWeight: FontWeight.w600,
                               color: Color(role['color'] as int),
                             ),
                           ),
@@ -140,12 +152,12 @@ class RolesScreen extends StatelessWidget {
                   // 1. Permission Name
                   Padding(
                     padding: const EdgeInsets.symmetric(
-                      vertical: 12,
+                      vertical: 16,
                       horizontal: 16,
                     ),
                     child: Text(
                       perm,
-                      style: const TextStyle(fontWeight: FontWeight.w500),
+                      style: GoogleFonts.inter(fontWeight: FontWeight.w500, color: Colors.black87),
                     ),
                   ),
 
@@ -169,9 +181,8 @@ class RolesScreen extends StatelessWidget {
     String roleName,
     String perm,
   ) {
-    bool isEnabled =
-        controller.rolePermissions[roleName]?.contains(perm) ?? false;
-    // Super Admin should usually be locked to TRUE (Safety)
+    bool isEnabled = controller.rolePermissions[roleName]?.contains(perm) ?? false;
+    // Lock Super Admin permissions for safety
     bool isLocked = roleName == "Super Admin";
 
     return InkWell(
@@ -179,14 +190,25 @@ class RolesScreen extends StatelessWidget {
           ? null
           : () => controller.togglePermission(roleName, perm),
       child: Container(
-        height: 50,
+        height: 60, // Taller touch target
         alignment: Alignment.center,
         child: isLocked
             ? const Icon(Icons.lock, size: 16, color: Colors.grey)
-            : Icon(
-                isEnabled ? Icons.check_circle : Icons.circle_outlined,
-                color: isEnabled ? Colors.green : Colors.grey.shade300,
-                size: 20,
+            : AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  color: isEnabled ? Colors.green : Colors.transparent,
+                  border: Border.all(
+                    color: isEnabled ? Colors.green : Colors.grey.shade300,
+                    width: 2
+                  ),
+                  borderRadius: BorderRadius.circular(6)
+                ),
+                child: isEnabled 
+                  ? const Icon(Icons.check, color: Colors.white, size: 16)
+                  : null,
               ),
       ),
     );
@@ -206,20 +228,21 @@ class RolesScreen extends StatelessWidget {
           margin: const EdgeInsets.only(bottom: 15),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 5)],
           ),
           child: ExpansionTile(
             title: Text(
               roleName,
-              style: const TextStyle(fontWeight: FontWeight.bold),
+              style: GoogleFonts.inter(fontWeight: FontWeight.bold),
             ),
-            subtitle: Text("${role['users']} Users assigned"),
+            subtitle: Text("${role['users']} Users assigned", style: GoogleFonts.inter(fontSize: 12)),
             leading: CircleAvatar(
               backgroundColor: Color(role['color'] as int).withOpacity(0.1),
               child: Icon(
-                Icons.shield,
+                Icons.shield_outlined,
                 color: Color(role['color'] as int),
-                size: 18,
+                size: 20,
               ),
             ),
             children: [
@@ -227,11 +250,9 @@ class RolesScreen extends StatelessWidget {
               // Permission Switches
               for (String perm in controller.allPermissions)
                 SwitchListTile(
-                  title: Text(perm, style: const TextStyle(fontSize: 13)),
+                  title: Text(perm, style: GoogleFonts.inter(fontSize: 13)),
                   dense: true,
-                  value:
-                      controller.rolePermissions[roleName]?.contains(perm) ??
-                      false,
+                  value: controller.rolePermissions[roleName]?.contains(perm) ?? false,
                   activeColor: Colors.green,
                   onChanged: (roleName == "Super Admin")
                       ? null // Disable toggle for Super Admin

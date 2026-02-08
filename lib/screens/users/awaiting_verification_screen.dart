@@ -1,14 +1,13 @@
+import 'package:clockinn_flutter_admin/controllers/verification_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:google_fonts/google_fonts.dart';
-import '../../controllers/verification_controller.dart';
+import 'package:google_fonts/google_fonts.dart'; 
 
 class AwaitingVerificationScreen extends StatelessWidget {
   const AwaitingVerificationScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Inject Controller
     final controller = Get.put(VerificationController());
 
     return Column(
@@ -34,7 +33,6 @@ class AwaitingVerificationScreen extends StatelessWidget {
                       style: GoogleFonts.inter(fontSize: 14, color: Colors.grey)),
                 ],
               ),
-              // Refresh Button
               IconButton(
                 onPressed: controller.fetchData, 
                 icon: const Icon(Icons.refresh, color: Colors.blue),
@@ -67,7 +65,7 @@ class AwaitingVerificationScreen extends StatelessWidget {
               );
             }
 
-            // RESPONSIVE SWITCH: Table for Desktop (>900px), Cards for Mobile
+            // Responsive Switch
             if (Get.width < 900) {
               return ListView.builder(
                 padding: const EdgeInsets.only(bottom: 20),
@@ -83,9 +81,7 @@ class AwaitingVerificationScreen extends StatelessWidget {
     );
   }
 
-  // ===========================================================================
-  // WIDGET: DESKTOP TABLE
-  // ===========================================================================
+  // --- DESKTOP TABLE ---
   Widget _buildDesktopTable(VerificationController controller) {
     return Container(
       width: double.infinity,
@@ -103,12 +99,10 @@ class AwaitingVerificationScreen extends StatelessWidget {
             DataColumn(label: Text("Name / Email", style: TextStyle(fontWeight: FontWeight.bold))),
             DataColumn(label: Text("Phone", style: TextStyle(fontWeight: FontWeight.bold))),
             DataColumn(label: Text("Requested Dept", style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(label: Text("Registered On", style: TextStyle(fontWeight: FontWeight.bold))),
             DataColumn(label: Text("Actions", style: TextStyle(fontWeight: FontWeight.bold))),
           ],
           rows: controller.waitingUsers.map((user) {
             return DataRow(cells: [
-              // 1. Profile Pic (Click to View)
               DataCell(
                 GestureDetector(
                   onTap: () => _showImageDialog(user['picurl']),
@@ -124,7 +118,6 @@ class AwaitingVerificationScreen extends StatelessWidget {
                   ),
                 )
               ),
-              // 2. Name & Email
               DataCell(Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -133,20 +126,15 @@ class AwaitingVerificationScreen extends StatelessWidget {
                   Text(user['email'] ?? "", style: const TextStyle(fontSize: 12, color: Colors.grey)),
                 ],
               )),
-              // 3. Phone
               DataCell(Text(user['phone'] ?? "N/A")),
-              // 4. Requested Department (From App)
               DataCell(
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(4)),
-                  child: Text(user['department'] != "" ? user['department'] : "None", 
+                  child: Text(user['department'] ?? "None", 
                       style: TextStyle(color: Colors.grey.shade700, fontSize: 12)),
                 )
               ),
-              // 5. Date
-              DataCell(Text(user['addedon'].toString().split(' at ')[0])), // Extracts just the date part
-              // 6. Actions
               DataCell(Row(
                 children: [
                   ElevatedButton(
@@ -178,9 +166,7 @@ class AwaitingVerificationScreen extends StatelessWidget {
     );
   }
 
-  // ===========================================================================
-  // WIDGET: MOBILE CARD VIEW
-  // ===========================================================================
+  // --- MOBILE CARD ---
   Widget _buildMobileCard(Map<String, dynamic> user, VerificationController controller) {
     return Container(
       margin: const EdgeInsets.only(bottom: 15),
@@ -224,7 +210,7 @@ class AwaitingVerificationScreen extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(4)),
-                      child: Text("Req: ${user['department'] != "" ? user['department'] : "None"}", 
+                      child: Text("Req: ${user['department'] ?? "None"}", 
                           style: TextStyle(color: Colors.grey.shade800, fontSize: 10)),
                     )
                   ],
@@ -266,12 +252,8 @@ class AwaitingVerificationScreen extends StatelessWidget {
     );
   }
 
-  // ===========================================================================
-  // HELPER: SELFIE ZOOM DIALOG
-  // ===========================================================================
   void _showImageDialog(String? url) {
     if (url == null || url.isEmpty) return;
-    
     Get.dialog(
       Dialog(
         backgroundColor: Colors.transparent,
@@ -280,10 +262,6 @@ class AwaitingVerificationScreen extends StatelessWidget {
           children: [
             Container(
               constraints: const BoxConstraints(maxWidth: 500, maxHeight: 500),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(10),
-                color: Colors.white,
-              ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(10),
                 child: Image.network(url, fit: BoxFit.contain),
@@ -302,12 +280,14 @@ class AwaitingVerificationScreen extends StatelessWidget {
     );
   }
 
-  // ===========================================================================
-  // HELPER: APPROVAL & ASSIGNMENT DIALOG
-  // ===========================================================================
+  // --- SMART APPROVE DIALOG ---
   void _showApproveDialog(VerificationController controller, Map<String, dynamic> user) {
-    // 1. Ensure selection defaults to the first available site
-    if (controller.availableSites.isNotEmpty) {
+    // 1. Logic to pre-select the requested site if it exists
+    String requested = user['department'] ?? "";
+    
+    if (controller.availableSites.contains(requested)) {
+      controller.selectedSite.value = requested;
+    } else if (controller.availableSites.isNotEmpty) {
       controller.selectedSite.value = controller.availableSites.first;
     }
 
@@ -318,7 +298,6 @@ class AwaitingVerificationScreen extends StatelessWidget {
       radius: 12,
       content: Column(
         children: [
-          // Information Text
           const Text(
             "Select the Operation Site for this employee:", 
             textAlign: TextAlign.center,
@@ -326,7 +305,6 @@ class AwaitingVerificationScreen extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           
-          // DROPDOWN MENU
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12),
             decoration: BoxDecoration(
@@ -377,8 +355,13 @@ class AwaitingVerificationScreen extends StatelessWidget {
       confirmTextColor: Colors.white,
       buttonColor: Colors.green,
       onConfirm: () {
-        controller.approveUser(user['id'], controller.selectedSite.value);
-        Get.back(); // Close Dialog
+        if(controller.selectedSite.value.isNotEmpty) {
+          controller.approveUser(user['id'], controller.selectedSite.value);
+          // Get.back() is handled in controller logic usually, but if not:
+          // Get.back(); 
+        } else {
+          Get.snackbar("Error", "Please select a site first");
+        }
       }
     );
   }

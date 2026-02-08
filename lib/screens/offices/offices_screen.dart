@@ -1,231 +1,350 @@
+import 'package:clockinn_flutter_admin/controllers/login_controller.dart'; // Import this
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../controllers/offices_controller.dart';
+import 'edit_office_screen.dart'; 
 
 class OfficesScreen extends StatelessWidget {
-  const OfficesScreen({super.key});
+  OfficesScreen({super.key});
+
+  static const Color bgGrey = Color(0xFFF1F5F9);
+  static const Color textDark = Color(0xFF1E293B);
+  static const Color primaryGreen = Color(0xFF10B981);
+
+  final TextEditingController searchInputCtrl = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
     final controller = Get.put(OfficesController());
 
-    return Column(
-      children: [
-        // --- HEADER ---
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(10),
-            boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.1), blurRadius: 10)],
-          ),
-          child: LayoutBuilder(builder: (context, constraints) {
-            bool isSmall = constraints.maxWidth < 600;
-            return Flex(
-              direction: isSmall ? Axis.vertical : Axis.horizontal,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text("Operation Sites", 
-                    style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.bold)),
-                if(isSmall) const SizedBox(height: 15),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
+    return Scaffold(
+      backgroundColor: bgGrey,
+      body: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildHeader(controller),
+            const SizedBox(height: 30),
+            Expanded(
+              child: Obx(() {
+                if (controller.isLoading.value) {
+                  return const Center(child: CircularProgressIndicator(color: primaryGreen));
+                }
+                if (controller.filteredSites.isEmpty) {
+                  return _buildEmptyState();
+                }
+                return LayoutBuilder(
+                  builder: (context, constraints) {
+                    if (constraints.maxWidth > 900) {
+                      return _buildDesktopGrid(controller);
+                    } else {
+                      return _buildMobileList(controller);
+                    }
+                  },
+                );
+              }),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader(OfficesController controller) {
+    final loginCtrl = Get.find<LoginController>(); // Get Login Controller
+    bool canAddOffice = loginCtrl.userRole.value == "Super Admin"; // Check permission
+
+    return LayoutBuilder(builder: (context, constraints) {
+      bool isMobile = constraints.maxWidth < 600;
+      
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 1. Title Section
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    SizedBox(
-                      width: isSmall ? 200 : 250,
-                      child: TextField(
-                        decoration: InputDecoration(
-                          hintText: "Search sites...",
-                          prefixIcon: const Icon(Icons.search, size: 18),
-                          isDense: true,
-                          contentPadding: const EdgeInsets.all(12),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 15),
-                    ElevatedButton.icon(
-                      onPressed: () => Get.snackbar("Action", "Add Site Dialog"),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blueAccent,
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
-                      icon: const Icon(Icons.add, color: Colors.white, size: 18),
-                      label: const Text("Add New", style: TextStyle(color: Colors.white)),
-                    ),
+                    Text("Office Locations", style: GoogleFonts.poppins(fontSize: 24, fontWeight: FontWeight.bold, color: textDark)),
+                    Text("Manage your operating sites and geofences.", style: GoogleFonts.inter(color: Colors.grey[600], fontSize: 14)),
                   ],
                 ),
-              ],
-            );
-          }),
-        ),
-
-        const SizedBox(height: 20),
-
-        // --- DATA LIST ---
-        Expanded(
-          child: Obx(() {
-            if (controller.isLoading.value) {
-              return const Center(child: CircularProgressIndicator());
-            }
-
-            if (Get.width < 900) {
-              return ListView.builder(
-                itemCount: controller.sites.length,
-                itemBuilder: (context, index) => _buildMobileCard(controller.sites[index], controller),
-              );
-            } else {
-              return _buildDesktopTable(controller);
-            }
-          }),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDesktopTable(OfficesController controller) {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10)),
-      padding: const EdgeInsets.all(20),
-      child: SingleChildScrollView(
-        child: DataTable(
-          horizontalMargin: 0,
-          columnSpacing: 20,
-          headingRowColor: MaterialStateProperty.all(Colors.grey[50]),
-          columns: const [
-            DataColumn(label: Text("Site Name", style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(label: Text("Location", style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(label: Text("Radius", style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(label: Text("Working Hours", style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(label: Text("Status", style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(label: Text("Actions", style: TextStyle(fontWeight: FontWeight.bold))),
-          ],
-          rows: controller.sites.map((site) {
-            bool isActive = site['status'] == true;
-            bool isHQ = site['isHQ'] == true;
-
-            return DataRow(cells: [
-              // 1. Site Name (With HQ Badge)
-              DataCell(Row(
-                children: [
-                  Text(site['nameofsite'], style: const TextStyle(fontWeight: FontWeight.w600)),
-                  if (isHQ)
-                    Container(
-                      margin: const EdgeInsets.only(left: 8),
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(color: Colors.purple.shade50, borderRadius: BorderRadius.circular(4), border: Border.all(color: Colors.purple.shade100)),
-                      child: const Text("HQ", style: TextStyle(fontSize: 10, color: Colors.purple, fontWeight: FontWeight.bold)),
-                    )
-                ],
-              )),
-              
-              // 2. Location
-              DataCell(Text(site['location'])),
-              
-              // 3. Radius
-              DataCell(Text("${site['radius']}m")),
-
-              // 4. Hours
-              DataCell(Text("${site['openingTime']} - ${site['closingTime']}")),
-
-              // 5. Status
-              DataCell(
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: isActive ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    isActive ? "Active" : "Inactive",
-                    style: TextStyle(color: isActive ? Colors.green : Colors.red, fontSize: 12, fontWeight: FontWeight.bold),
-                  ),
-                )
               ),
+              // 🔒 RESTRICTED: ADD BUTTON (Desktop)
+              if (!isMobile && canAddOffice)
+                ElevatedButton.icon(
+                  onPressed: () => Get.toNamed('/setup-office'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primaryGreen,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    elevation: 2,
+                  ),
+                  icon: const Icon(Icons.add, size: 20),
+                  label: const Text("Add Office"),
+                ),
+            ],
+          ),
 
-              // 6. Actions
-              DataCell(Row(
-                children: [
-                  IconButton(icon: const Icon(Icons.edit, color: Colors.blue, size: 20), onPressed: () {}),
-                  IconButton(icon: const Icon(Icons.delete, color: Colors.red, size: 20), onPressed: () => controller.deleteSite(site['id'])),
-                ],
-              )),
-            ]);
-          }).toList(),
-        ),
+          const SizedBox(height: 20),
+
+          // 2. Search & Add Section
+          Row(
+            children: [
+              Expanded(
+                child: SizedBox(
+                  height: 50,
+                  child: TextField(
+                    controller: searchInputCtrl,
+                    onChanged: controller.filterSites,
+                    decoration: InputDecoration(
+                      hintText: "Search offices...",
+                      prefixIcon: Icon(Icons.search, color: Colors.grey[400]),
+                      suffixIcon: IconButton(
+                        icon: const Icon(Icons.close, size: 18, color: Colors.grey),
+                        onPressed: () {
+                          searchInputCtrl.clear();
+                          controller.filterSites("");
+                        },
+                      ),
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                    ),
+                  ),
+                ),
+              ),
+              
+              // 🔒 RESTRICTED: ADD BUTTON (Mobile)
+              if (isMobile && canAddOffice) ...[
+                const SizedBox(width: 12),
+                SizedBox(
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: () => Get.toNamed('/setup-office'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: primaryGreen,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(horizontal: 0),
+                      elevation: 2,
+                    ),
+                    child: const Padding(
+                      padding: EdgeInsets.all(12.0),
+                      child: Icon(Icons.add, size: 24),
+                    ),
+                  ),
+                ),
+              ]
+            ],
+          ),
+        ],
+      );
+    });
+  }
+
+  
+  // Paste the rest of your original file here to ensure no functionality is lost.
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.business_outlined, size: 60, color: Colors.grey[300]),
+          const SizedBox(height: 16),
+          Text("No offices found", style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.grey[400])),
+        ],
       ),
     );
   }
 
-  Widget _buildMobileCard(Map<String, dynamic> site, OfficesController controller) {
-    bool isActive = site['status'] == true;
-    bool isHQ = site['isHQ'] == true;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 15),
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.1), blurRadius: 5)],
+  Widget _buildDesktopGrid(OfficesController controller) {
+     final loginCtrl = Get.find<LoginController>(); // Get Login Controller
+  bool canAddOffice = loginCtrl.userRole.value == "Super Admin"; // Check permission
+    return GridView.builder(
+      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+        maxCrossAxisExtent: 400,
+        childAspectRatio: 1.1,
+        crossAxisSpacing: 20,
+        mainAxisSpacing: 20,
       ),
+      itemCount: controller.filteredSites.length,
+      itemBuilder: (context, index) => _buildOfficeCard(controller.filteredSites[index],canAddOffice, controller, isMobile: false),
+    );
+  }
+
+  Widget _buildMobileList(OfficesController controller) {
+      final loginCtrl = Get.find<LoginController>(); // Get Login Controller
+  bool canAddOffice = loginCtrl.userRole.value == "Super Admin"; // Check permission
+
+    return ListView.separated(
+      itemCount: controller.filteredSites.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 16),
+      itemBuilder: (context, index) => _buildOfficeCard(controller.filteredSites[index],canAddOffice, controller, isMobile: true),
+    );
+  }
+
+  Widget _buildOfficeCard(Map<String, dynamic> site, bool canAddOffice, OfficesController controller, {required bool isMobile}) {
+    bool isHQ = site['isHQ'] == true;
+    bool isActive = site['status'] == true;
+    String imageUrl = site['officeimage'] ?? "";
+
+    Widget contentBody = Padding(
+      padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: isMobile ? MainAxisSize.min : MainAxisSize.max,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Text(site['nameofsite'], style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.bold)),
-                  if(isHQ)
-                     Container(
-                      margin: const EdgeInsets.only(left: 8),
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(color: Colors.purple.shade50, borderRadius: BorderRadius.circular(4)),
-                      child: const Text("HQ", style: TextStyle(fontSize: 10, color: Colors.purple, fontWeight: FontWeight.bold)),
-                    )
-                ],
+              Expanded(
+                child: Text(
+                  site['nameofsite'] ?? "Unknown",
+                  style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 16, color: textDark),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-              Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: isActive ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(isActive ? "Active" : "Inactive", style: TextStyle(color: isActive ? Colors.green : Colors.red, fontSize: 10)),
+              PopupMenuButton<String>(
+                icon: const Icon(Icons.more_vert, size: 20, color: Colors.grey),
+                onSelected: (value) {
+                  if (value == 'edit') {
+                    Get.to(() => EditOfficeScreen(siteData: site, siteId: site['id']));
+                  } else if (value == 'delete') {
+                    _confirmDelete(controller, site['id']);
+                  }
+                },
+                itemBuilder: (context) => [
+                  const PopupMenuItem(value: 'edit', child: Row(children: [Icon(Icons.edit, size: 16), SizedBox(width: 8), Text("Edit")])),
+                    if (canAddOffice)
+                  const PopupMenuItem(value: 'delete', child: Row(children: [Icon(Icons.delete, color: Colors.red, size: 16), SizedBox(width: 8), Text("Delete", style: TextStyle(color: Colors.red))])),
+                ],
               )
             ],
           ),
-          const SizedBox(height: 5),
-          Text(site['location'], style: const TextStyle(color: Colors.grey, fontSize: 13)),
-          
-          const Divider(height: 20),
-          
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              const Icon(Icons.location_on_outlined, size: 14, color: Colors.grey),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  site['location'] ?? "No address",
+                  style: GoogleFonts.inter(color: Colors.grey[600], fontSize: 12),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+
+          if (!isMobile) const Spacer() else const SizedBox(height: 20),
+
+          const Divider(),
+          const SizedBox(height: 8),
+
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                 const Text("Radius", style: TextStyle(fontSize: 11, color: Colors.grey)),
-                 Text("${site['radius']}m", style: const TextStyle(fontWeight: FontWeight.w500)),
-              ]),
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                 const Text("Hours", style: TextStyle(fontSize: 11, color: Colors.grey)),
-                 Text("${site['openingTime']} - ${site['closingTime']}", style: const TextStyle(fontWeight: FontWeight.w500)),
-              ]),
-              Row(
-                children: [
-                  IconButton(icon: const Icon(Icons.edit, color: Colors.blue), onPressed: () {}),
-                  IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => controller.deleteSite(site['id'])),
-                ],
-              )
+              _buildMiniStat(Icons.radar, "${site['radius']}m"),
+              _buildMiniStat(Icons.schedule, "${site['openingTime']}-${site['closingTime']}"),
+              _buildMiniStat(Icons.work, "${(site['workingdays'] as List?)?.length ?? 0} Days"),
             ],
-          )
+          ),
         ],
       ),
+    );
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 15, offset: const Offset(0, 4)),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: isMobile ? MainAxisSize.min : MainAxisSize.max,
+        children: [
+          SizedBox(
+            height: 100,
+            width: double.infinity,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                imageUrl.isNotEmpty
+                    ? Image.network(imageUrl, fit: BoxFit.cover, errorBuilder: (_, __, ___) => Container(color: textDark, child: const Icon(Icons.business, color: Colors.white24)))
+                    : Container(
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [Color(0xFF1E293B), Color(0xFF334155)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                        ),
+                        child: const Center(child: Icon(Icons.business, color: Colors.white24, size: 40)),
+                      ),
+                Positioned(
+                  top: 12,
+                  right: 12,
+                  child: Row(
+                    children: [
+                      if (isHQ)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          margin: const EdgeInsets.only(right: 8),
+                          decoration: BoxDecoration(color: Colors.purple, borderRadius: BorderRadius.circular(6)),
+                          child: const Text("HQ", style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                        ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(color: isActive ? Colors.green : Colors.red, borderRadius: BorderRadius.circular(6)),
+                        child: Text(isActive ? "Active" : "Inactive", style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                      ),
+                    ],
+                  ),
+                )
+              ],
+            ),
+          ),
+          if (isMobile) contentBody else Expanded(child: contentBody),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMiniStat(IconData icon, String label) {
+    return Row(
+      children: [
+        Icon(icon, size: 14, color: Colors.grey[400]),
+        const SizedBox(width: 4),
+        Text(label, style: GoogleFonts.inter(fontSize: 11, color: Colors.grey[600], fontWeight: FontWeight.w500)),
+      ],
+    );
+  }
+
+  void _confirmDelete(OfficesController controller, String id) {
+    Get.defaultDialog(
+      title: "Delete Office?",
+      middleText: "This action cannot be undone.",
+      textConfirm: "Delete",
+      confirmTextColor: Colors.white,
+      buttonColor: Colors.red,
+      onConfirm: () {
+        controller.deleteSite(id);
+        Get.back();
+      },
+      textCancel: "Cancel",
     );
   }
 }

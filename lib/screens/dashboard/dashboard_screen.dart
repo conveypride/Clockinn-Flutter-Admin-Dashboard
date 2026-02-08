@@ -1,4 +1,4 @@
- import 'package:clockinn_flutter_admin/screens/statDetails/stat_details_screen.dart';
+import 'package:clockinn_flutter_admin/screens/statDetails/stat_details_screen.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -21,7 +21,6 @@ class DashboardScreen extends StatelessWidget {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-           
             Text(
               "Dashboard Overview",
               style: GoogleFonts.inter(
@@ -45,12 +44,8 @@ class DashboardScreen extends StatelessWidget {
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {
-          // Determine screen width for responsiveness
           double width = constraints.maxWidth;
-          bool isDesktop = width > 1100;
-          bool isTablet = width > 650 && width <= 1100;
-          // Mobile is width <= 650
-
+          
           return RefreshIndicator(
             onRefresh: () async => controller.loadAdvancedStats(),
             child: SingleChildScrollView(
@@ -67,9 +62,12 @@ class DashboardScreen extends StatelessWidget {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                     TextButton(onPressed: (){
-              controller.runAnalyticsBackfill();
-            }, child: Text("Migrate Analytics Data")),
+                    // MIGRATION BUTTON (Remove later if needed)
+                    TextButton(
+                      onPressed: (){ controller.runAnalyticsBackfill(); }, 
+                      child: const Text("Migrate Analytics Data")
+                    ),
+                    
                     // 1. TOP KPI GRID (Responsive)
                     _buildResponsiveKPIGrid(controller, width),
 
@@ -145,7 +143,6 @@ class DashboardScreen extends StatelessWidget {
   // 1. RESPONSIVE KPI GRID
   // ===========================================================================
   Widget _buildResponsiveKPIGrid(DashboardController controller, double width) {
-    // Define all 4 cards as widgets first
     final card1 = _buildStatCard(
       "Total Staff",
       controller.totalEmployees.value.toString(),
@@ -198,7 +195,6 @@ class DashboardScreen extends StatelessWidget {
           )),
     );
 
-    // Desktop: 1 Row with 4 items
     if (width > 1100) {
       return Row(
         children: [
@@ -212,7 +208,6 @@ class DashboardScreen extends StatelessWidget {
         ],
       );
     } 
-    // Tablet & Mobile: 2 Rows with 2 items each (2x2 Grid)
     else {
       return Column(
         children: [
@@ -236,7 +231,6 @@ class DashboardScreen extends StatelessWidget {
     }
   }
 
-  // --- REUSABLE STAT CARD ---
   Widget _buildStatCard(String title, String value, String subtitle, IconData icon,
       Color color, VoidCallback onTap) {
     return InkWell(
@@ -775,11 +769,12 @@ class DashboardScreen extends StatelessWidget {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text(site['name'],
+                                // FIX: Defensive coding for name
+                                Text(site['name']?.toString() ?? "Unknown Site",
                                     style: GoogleFonts.inter(
                                         fontSize: 12,
                                         fontWeight: FontWeight.w500)),
-                                Text("${site['count']} Users",
+                                Text("${site['count'] ?? 0} Users",
                                     style: GoogleFonts.inter(
                                         fontSize: 12, color: Colors.grey)),
                               ],
@@ -835,12 +830,17 @@ class DashboardScreen extends StatelessWidget {
               backgroundColor: log['color'].withOpacity(0.1),
               child: Icon(Icons.person, color: log['color'], size: 18),
             ),
-            title: Text(log['name'],
+            // FIX: Defensive coding for Name
+            title: Text(log['name']?.toString() ?? "Unknown User",
                 style: GoogleFonts.inter(
                     fontWeight: FontWeight.w600, fontSize: 14)),
-            subtitle: Text("${log['site']} • ${log['status']}",
+            
+            // FIX: Defensive coding for Site/Status
+            subtitle: Text("${log['site']?.toString() ?? 'Site'} • ${log['status']?.toString() ?? 'Status'}",
                 style: GoogleFonts.inter(fontSize: 12, color: Colors.grey)),
-            trailing: Text(log['time'],
+            
+            // FIX: Defensive coding for Time
+            trailing: Text(log['time']?.toString() ?? "--:--",
                 style: GoogleFonts.inter(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
@@ -850,4 +850,4 @@ class DashboardScreen extends StatelessWidget {
       },
     );
   }
-}
+} 
