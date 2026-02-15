@@ -76,6 +76,7 @@ class SignupController extends GetxController {
           'isTrial': true,
           'trialEndsAt': Timestamp.fromDate(trialEndDate),
           'billing_cycle': 'monthly',
+          'companyType': 'private',
           'amount': '0',
           'companySize': 1, 
           'hasExceededNumOfEmployees': false, // Critical for mobile checks

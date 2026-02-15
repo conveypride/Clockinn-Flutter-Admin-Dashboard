@@ -15,30 +15,46 @@ class SubscriptionController extends GetxController {
   var nextBillingDate = DateTime.now().add(const Duration(days: 30)).obs;
   var status = "Active".obs; 
 
-  // --- PRICING ---
-  final double baseRatePerEmployee = 30.00;
-  final double discountRate = 0.80; // 20% Off
+  // --- PRICING CONFIGURATION (YEARLY BASE) ---
+  // The pricing provided is per YEAR based on tiers
+  double get _baseYearlyCost {
+    int count = employeeCount.value;
+    if (count <= 50) return 1500.0;
+    if (count <= 100) return 2000.0;
+    if (count <= 150) return 2500.0;
+    if (count <= 200) return 3000.0;
+    return 3500.0; // 201+ employees
+  }
 
   // --- COMPUTED VALUES ---
-  double get pricePerUserDisplay {
+
+  // 1. Calculate the cost for the *selected* plan
+  double get currentPlanCost {
     if (isYearly.value) {
-      return baseRatePerEmployee * discountRate;
+      // Yearly Payment: 5% Off the base yearly price
+      return _baseYearlyCost * 0.95; 
     }
-    return baseRatePerEmployee;
+    
+    // Monthly Payment: Yearly Price divided by 12
+    return _baseYearlyCost / 12;
   }
 
-  double get standardPlanCost {
-    double monthlyTotal = employeeCount.value * baseRatePerEmployee;
-    if (isYearly.value) {
-      return (monthlyTotal * 12) * discountRate;
-    }
-    return monthlyTotal;
-  }
-
+  // 2. Calculate savings (Difference between paying monthly for a year vs paying yearly once)
+  // (Monthly * 12) vs (Yearly Discounted)
   double get yearlySavings {
-    double regularYearly = (employeeCount.value * baseRatePerEmployee) * 12;
-    double discountedYearly = regularYearly * discountRate;
-    return regularYearly - discountedYearly;
+    double totalIfMonthly = (_baseYearlyCost / 12) * 12; // effectively _baseYearlyCost
+    double totalIfYearly = _baseYearlyCost * 0.95;
+    return totalIfMonthly - totalIfYearly;
+  }
+
+  // 3. Helper for UI display text
+  String get currentTierName {
+    int count = employeeCount.value;
+    if (count <= 50) return "Starter (1-50 Emps)";
+    if (count <= 100) return "Growth (51-100 Emps)";
+    if (count <= 150) return "Business (101-150 Emps)";
+    if (count <= 200) return "Enterprise (151-200 Emps)";
+    return "Unlimited (201+ Emps)";
   }
 
   // --- ARREARS LOGIC ---
@@ -53,11 +69,13 @@ class SubscriptionController extends GetxController {
 
   double get arrearsCost {
     if (monthsOverdue == 0) return 0.0;
-    return (employeeCount.value * baseRatePerEmployee) * monthsOverdue;
+    // Arrears are calculated at the UNDISCOUNTED monthly rate
+    double monthlyRate = _baseYearlyCost / 12;
+    return monthlyRate * monthsOverdue;
   }
 
   double get totalDueNow {
-    return arrearsCost + standardPlanCost;
+    return arrearsCost + currentPlanCost;
   }
 
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -66,7 +84,6 @@ class SubscriptionController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-  // 🛠️ FIX: Wait for the build to finish before checking access/navigation
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkAccessAndLoad();
     });
@@ -90,7 +107,6 @@ class SubscriptionController extends GetxController {
       var doc = await _db.collection('companies').doc(cid).get();
       if (doc.exists) {
         var data = doc.data()!;
-        // Load their PREFERRED cycle, but user can change it in UI
         isYearly.value = data['isYearly'] ?? false; 
         status.value = data['subscriptionStatus'] ?? "Active";
         
@@ -114,7 +130,6 @@ class SubscriptionController extends GetxController {
     }
   }
 
-  // UI calls this when toggling the switch
   void toggleBillingCycle(bool value) {
     isYearly.value = value;
   }
@@ -129,31 +144,51 @@ class SubscriptionController extends GetxController {
       title: "Confirm Update",
       content: Obx(() {
         bool hasArrears = monthsOverdue > 0;
-        bool isUpgrade = isYearly.value; // If they selected Yearly
+        bool isUpgrade = isYearly.value; 
         
         return Column(
           children: [
-            Text("Switching to: ${isUpgrade ? 'Yearly (Best Value)' : 'Monthly'}"),
+            Text(currentTierName, style: const TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 5),
+            Text("Switching to: ${isUpgrade ? 'Yearly (5% Off)' : 'Monthly'}"),
+            
             if (isUpgrade)
-               Text("You save GHC ${NumberFormat("#,##0").format(yearlySavings)}/year", style: const TextStyle(color: Colors.green, fontSize: 12)),
+               Padding(
+                 padding: const EdgeInsets.only(top: 5.0),
+                 child: Text("You save GHC ${NumberFormat("#,##0").format(yearlySavings)}/year", 
+                   style: const TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.bold)),
+               ),
             
             const SizedBox(height: 15),
 
             if (hasArrears) ...[
-              Text("Past Due: $monthsOverdue Months", style: const TextStyle(color: Colors.red)),
               const Divider(),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text("Past Due ($monthsOverdue mos):", style: const TextStyle(color: Colors.red)),
+                  Text("GHC ${NumberFormat("#,##0").format(arrearsCost)}", style: const TextStyle(color: Colors.red)),
+                ],
+              ),
             ],
 
-            const Text("Total To Pay Now:", style: TextStyle(fontWeight: FontWeight.bold)),
-            Text(
-              "GHC ${NumberFormat("#,##0.00").format(totalDueNow)}",
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 22, color: Colors.blue),
+            const Divider(),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text("Total To Pay:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                Text(
+                  "GHC ${NumberFormat("#,##0.00").format(totalDueNow)}",
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.blue),
+                ),
+              ],
             ),
           ],
         );
       }),
       textConfirm: "Pay & Update",
       textCancel: "Cancel",
+      confirmTextColor: Colors.white,
       onConfirm: () async {
         Get.back(); 
         _initiatePaystack();
@@ -228,26 +263,21 @@ class SubscriptionController extends GetxController {
     }
   }
 
-  // 🛑 SMART ACTIVATION LOGIC
   void _activateSubscription() async {
     try {
       String cid = auth.companyId.value;
       DateTime now = DateTime.now();
       
-      // Determine Start Date:
-      // If they are expired/late: Start from NOW.
-      // If they are active and renewing early: Start from their FUTURE billing date.
       DateTime startDate = nextBillingDate.value.isAfter(now) 
           ? nextBillingDate.value 
           : now;
 
-      // Add the new duration (30 days or 365 days)
       DateTime newExpiry = startDate.add(Duration(days: isYearly.value ? 365 : 30));
 
       await _db.collection('companies').doc(cid).update({
         'isTrial': false,
         'subscriptionStatus': 'Active',
-        'isYearly': isYearly.value, // Saves their new preference
+        'isYearly': isYearly.value,
         'nextBillingDate': newExpiry,
         'lastPaymentDate': FieldValue.serverTimestamp(),
         'lastPaymentAmount': totalDueNow,

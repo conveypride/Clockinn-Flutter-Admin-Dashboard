@@ -21,7 +21,7 @@ class SubscriptionScreen extends StatelessWidget {
             // --- HEADER ---
             Text("Subscription & Billing", style: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.bold)),
             const SizedBox(height: 5),
-            Text("Simple per-employee pricing. Scale as you grow.", style: GoogleFonts.inter(color: Colors.grey)),
+            Text("Tiered pricing based on your team size.", style: GoogleFonts.inter(color: Colors.grey)),
             const SizedBox(height: 30),
 
             // Main Loading Check
@@ -42,7 +42,6 @@ class SubscriptionScreen extends StatelessWidget {
                             children: [
                               _buildCurrentPlanCard(controller),
                               const SizedBox(height: 20),
-                              // 🛠️ Note: This widget now has internal Obx
                               _buildBillingCalculator(controller),
                             ],
                           ),
@@ -50,7 +49,6 @@ class SubscriptionScreen extends StatelessWidget {
                         const SizedBox(width: 30),
                         Expanded(
                           flex: 1,
-                          // 🛠️ Note: This widget now has internal Obx
                           child: _buildPaymentSummary(controller),
                         ),
                       ],
@@ -99,7 +97,7 @@ class SubscriptionScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "All-Inclusive Plan", 
+                  controller.currentTierName, // Shows "Starter", "Growth", etc.
                   style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 18),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -131,7 +129,6 @@ class SubscriptionScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 10)],
       ),
-      // 🛠️ FIX: Added Obx here so the toggle redraws the UI immediately
       child: Obx(() => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -145,7 +142,7 @@ class SubscriptionScreen extends StatelessWidget {
             child: Row(
               children: [
                 Expanded(child: _buildToggleOption("Monthly", !controller.isYearly.value, () => controller.toggleBillingCycle(false))),
-                Expanded(child: _buildToggleOption("Yearly (Save 20%)", controller.isYearly.value, () => controller.toggleBillingCycle(true))),
+                Expanded(child: _buildToggleOption("Yearly (Save 5%)", controller.isYearly.value, () => controller.toggleBillingCycle(true))),
               ],
             ),
           ),
@@ -164,17 +161,8 @@ class SubscriptionScreen extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Expanded(child: Text("Rate per User", style: GoogleFonts.inter(color: Colors.grey[600]))),
-              Flexible(
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                      if (controller.isYearly.value)
-                        Text("GHC 30.00  ", style: TextStyle(decoration: TextDecoration.lineThrough, color: Colors.grey[400], fontSize: 12)),
-                      Text("GHC ${controller.pricePerUserDisplay.toStringAsFixed(2)}", style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
-                  ],
-                ),
-              )
+              Text("Current Tier", style: GoogleFonts.inter(color: Colors.grey[600])),
+              Text(controller.currentTierName, style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.blueAccent)),
             ],
           ),
         ],
@@ -210,14 +198,13 @@ class SubscriptionScreen extends StatelessWidget {
         color: const Color(0xFF1E293B), // Dark Navy
         borderRadius: BorderRadius.circular(16),
       ),
-      // 🛠️ FIX: Added Obx here so the summary redraws when toggle changes
       child: Obx(() => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text("Order Summary", style: GoogleFonts.inter(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 20),
           
-          _buildSummaryRow("Employees", "${controller.employeeCount.value}"),
+          _buildSummaryRow("Plan Cost", "GHC ${NumberFormat("#,##0.00").format(controller.currentPlanCost)}"),
           _buildSummaryRow("Cycle", controller.isYearly.value ? "Yearly" : "Monthly"),
           
           if (controller.monthsOverdue > 0) ...[
@@ -275,7 +262,7 @@ class SubscriptionScreen extends StatelessWidget {
               decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(4)),
               child: Center(
                 child: Text(
-                  "You save GHC ${NumberFormat("#,##0").format(controller.yearlySavings)} on the new cycle!",
+                  "You save GHC ${NumberFormat("#,##0").format(controller.yearlySavings)}!",
                   style: const TextStyle(color: Colors.orangeAccent, fontSize: 12),
                   textAlign: TextAlign.center,
                 ),
