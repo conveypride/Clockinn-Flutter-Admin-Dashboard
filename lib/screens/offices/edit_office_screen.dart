@@ -45,9 +45,9 @@ class EditOfficeScreen extends StatelessWidget {
                       // --- NEW: HQ SWITCH ---
       Container(
         decoration: BoxDecoration(
-          color: Colors.purple.withOpacity(0.05),
+          color: Colors.purple.withValues(alpha:0.05),
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.purple.withOpacity(0.1)),
+          border: Border.all(color: Colors.purple.withValues(alpha:0.1)),
         ),
         child: Obx(() => SwitchListTile(
           title: Text("Set as Head Office (HQ)", style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: Colors.purple)),

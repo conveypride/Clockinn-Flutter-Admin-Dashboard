@@ -79,7 +79,7 @@ class ExportScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF0EA5E9).withOpacity(0.3),
+            color: const Color(0xFF0EA5E9).withValues(alpha:0.3),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -90,7 +90,7 @@ class ExportScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha:0.2),
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Icon(
@@ -117,7 +117,7 @@ class ExportScreen extends StatelessWidget {
                   "Generate comprehensive reports with advanced filtering",
                   style: GoogleFonts.inter(
                     fontSize: 13,
-                    color: Colors.white.withOpacity(0.9),
+                    color: Colors.white.withValues(alpha:0.9),
                   ),
                 ),
               ],
@@ -138,7 +138,7 @@ class ExportScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF64748B).withOpacity(0.08),
+            color: const Color(0xFF64748B).withValues(alpha:0.08),
             blurRadius: 20,
             offset: const Offset(0, 4),
           ),
@@ -278,7 +278,7 @@ class ExportScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: const Color(0xFF0EA5E9).withOpacity(0.1),
+                color: const Color(0xFF0EA5E9).withValues(alpha:0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Icon(
@@ -405,8 +405,8 @@ class ExportScreen extends StatelessWidget {
                   CircleAvatar(
                     radius: 14,
                     backgroundColor: user['id'] == 'All'
-                        ? const Color(0xFF0EA5E9).withOpacity(0.1)
-                        : const Color(0xFF8B5CF6).withOpacity(0.1),
+                        ? const Color(0xFF0EA5E9).withValues(alpha:0.1)
+                        : const Color(0xFF8B5CF6).withValues(alpha:0.1),
                     child: Text(
                       user['name']![0].toUpperCase(),
                       style: GoogleFonts.inter(
@@ -496,7 +496,7 @@ class ExportScreen extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF64748B).withOpacity(0.08),
+              color: const Color(0xFF64748B).withValues(alpha:0.08),
               blurRadius: 20,
               offset: const Offset(0, 4),
             ),
@@ -537,10 +537,10 @@ class ExportScreen extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: const Color(0xFF0EA5E9).withOpacity(0.05),
+            color: const Color(0xFF0EA5E9).withValues(alpha:0.05),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: const Color(0xFF0EA5E9).withOpacity(0.2),
+              color: const Color(0xFF0EA5E9).withValues(alpha:0.2),
               width: 1,
             ),
           ),
@@ -609,7 +609,7 @@ class ExportScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: shadowColor.withOpacity(0.3),
+            color: shadowColor.withValues(alpha:0.3),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -633,7 +633,7 @@ class ExportScreen extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
+                      color: Colors.white.withValues(alpha:0.2),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
@@ -660,7 +660,7 @@ class ExportScreen extends StatelessWidget {
                           subtitle,
                           style: GoogleFonts.inter(
                             fontSize: 12,
-                            color: Colors.white.withOpacity(0.9),
+                            color: Colors.white.withValues(alpha:0.9),
                           ),
                         ),
                       ],
@@ -668,7 +668,7 @@ class ExportScreen extends StatelessWidget {
                   ),
                   Icon(
                     Icons.arrow_forward,
-                    color: Colors.white.withOpacity(0.8),
+                    color: Colors.white.withValues(alpha:0.8),
                     size: 20,
                   ),
                 ],

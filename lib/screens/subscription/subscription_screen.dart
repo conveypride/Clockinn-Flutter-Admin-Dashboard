@@ -81,8 +81,8 @@ class SubscriptionScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.blue.withOpacity(0.1)),
-        boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 10)],
+        border: Border.all(color: Colors.blue.withValues(alpha:0.1)),
+        boxShadow: [BoxShadow(color: Colors.grey.withValues(alpha:0.05), blurRadius: 10)],
       ),
       child: Row(
         children: [
@@ -127,7 +127,7 @@ class SubscriptionScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 10)],
+        boxShadow: [BoxShadow(color: Colors.grey.withValues(alpha:0.05), blurRadius: 10)],
       ),
       child: Obx(() => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -179,7 +179,7 @@ class SubscriptionScreen extends StatelessWidget {
         decoration: BoxDecoration(
           color: isSelected ? Colors.white : Colors.transparent,
           borderRadius: BorderRadius.circular(6),
-          boxShadow: isSelected ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4)] : [],
+          boxShadow: isSelected ? [BoxShadow(color: Colors.black.withValues(alpha:0.05), blurRadius: 4)] : [],
         ),
         child: Center(
           child: Text(text, 
@@ -212,9 +212,9 @@ class SubscriptionScreen extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.red.shade900.withOpacity(0.5),
+                  color: Colors.red.shade900.withValues(alpha:0.5),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.redAccent.withOpacity(0.5))
+                  border: Border.all(color: Colors.redAccent.withValues(alpha:0.5))
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

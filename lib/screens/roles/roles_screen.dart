@@ -24,7 +24,7 @@ class RolesScreen extends StatelessWidget {
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
-                  BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 10),
+                  BoxShadow(color: Colors.grey.withValues(alpha:0.05), blurRadius: 10),
                 ],
               ),
               child: Column(
@@ -127,7 +127,7 @@ class RolesScreen extends StatelessWidget {
                             vertical: 3,
                           ),
                           decoration: BoxDecoration(
-                            color: Color(role['color'] as int).withOpacity(0.1),
+                            color: Color(role['color'] as int).withValues(alpha:0.1),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
@@ -229,7 +229,7 @@ class RolesScreen extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
-            boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 5)],
+            boxShadow: [BoxShadow(color: Colors.grey.withValues(alpha:0.05), blurRadius: 5)],
           ),
           child: ExpansionTile(
             title: Text(
@@ -238,7 +238,7 @@ class RolesScreen extends StatelessWidget {
             ),
             subtitle: Text("${role['users']} Users assigned", style: GoogleFonts.inter(fontSize: 12)),
             leading: CircleAvatar(
-              backgroundColor: Color(role['color'] as int).withOpacity(0.1),
+              backgroundColor: Color(role['color'] as int).withValues(alpha:0.1),
               child: Icon(
                 Icons.shield_outlined,
                 color: Color(role['color'] as int),

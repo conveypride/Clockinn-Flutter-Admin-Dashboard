@@ -224,9 +224,9 @@ class ExportController extends GetxController {
       }
       
       _userNames[doc.id] = name;
-      
+
       // Cache verified date
-      if (data['dateVerified'] != null) {
+      if (data['dateVerified'] != null && data['dateVerified'] != "") {
         try {
           _userVerifiedDates[doc.id] = (data['dateVerified'] as Timestamp).toDate();
         } catch (_) {}
@@ -511,11 +511,20 @@ loadingMessage.value = "Calculating absences for ${userIdsToProcess.length} empl
     if (hasAttendance) {
       // Present record
       var data = attendanceMap[lookupKey]!;
-      
-      DateTime checkIn = (data['checkInTime'] as Timestamp).toDate();
-      DateTime? checkOut = data['checkOutTime'] != null 
-          ? (data['checkOutTime'] as Timestamp).toDate() 
-          : null;
+
+      // ✅ Skip records with invalid/missing timestamps
+      var checkInTimeVal = data['checkInTime'];
+      if (checkInTimeVal == null || checkInTimeVal == "") {
+        continue;
+      }
+
+      DateTime checkIn = (checkInTimeVal as Timestamp).toDate();
+
+      DateTime? checkOut = null;
+      var checkOutTimeVal = data['checkOutTime'];
+      if (checkOutTimeVal != null && checkOutTimeVal != "") {
+        checkOut = (checkOutTimeVal as Timestamp).toDate();
+      }
       
       double hours = 0.0;
       String durationStr = data['workingHours']?.toString() ?? "0.0";
@@ -1062,15 +1071,4 @@ class UserStat {
   UserStat({required this.name, required this.siteName, required this.siteId});
 }
 
-// Helper class for fallback
-class _MockQuerySnapshot implements QuerySnapshot {
-  final List<QueryDocumentSnapshot> _docs;
-  
-  _MockQuerySnapshot(this._docs);
-  
-  @override
-  List<QueryDocumentSnapshot> get docs => _docs;
-  
-  @override
-  noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
-}
+ 

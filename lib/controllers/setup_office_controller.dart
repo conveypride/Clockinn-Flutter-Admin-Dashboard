@@ -159,7 +159,7 @@ class SetupOfficeController extends GetxController {
       circleId: const CircleId('radius'),
       center: pos,
       radius: selectedRadius.value,
-      fillColor: Colors.blue.withOpacity(0.3),
+      fillColor: Colors.blue.withValues(alpha: 0.3),
       strokeColor: Colors.blue,
       strokeWidth: 1,
     ));

@@ -63,7 +63,7 @@ class StatDetailsScreen extends StatelessWidget {
                 contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
                 leading: CircleAvatar(
                   radius: 24,
-                  backgroundColor: themeColor.withOpacity(0.1),
+                  backgroundColor: themeColor.withValues(alpha:0.1),
                   backgroundImage: (user['picurl'] != null && user['picurl'].isNotEmpty)
                       ? NetworkImage(user['picurl'])
                       : null,
@@ -86,7 +86,7 @@ class StatDetailsScreen extends StatelessWidget {
                     ? Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: themeColor.withOpacity(0.1),
+                          color: themeColor.withValues(alpha:0.1),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(

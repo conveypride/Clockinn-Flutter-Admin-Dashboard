@@ -96,7 +96,7 @@ class SideMenu extends StatelessWidget {
       onHover: (value) => value ? controller.onHover(route) : controller.onHover(""),
       child: Container(
         color: controller.isActive(route) || controller.isHovering(route)
-            ? Colors.blueAccent.withOpacity(0.2)
+            ? Colors.blueAccent.withValues(alpha:0.2)
             : Colors.transparent,
         child: Row(
           children: [

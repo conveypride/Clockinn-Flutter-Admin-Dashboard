@@ -18,7 +18,7 @@ class AwaitingVerificationScreen extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(10),
-            boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.1), blurRadius: 10)],
+            boxShadow: [BoxShadow(color: Colors.grey.withValues(alpha:0.1), blurRadius: 10)],
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -56,7 +56,7 @@ class AwaitingVerificationScreen extends StatelessWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.check_circle_outline, size: 60, color: Colors.green.withOpacity(0.5)),
+                    Icon(Icons.check_circle_outline, size: 60, color: Colors.green.withValues(alpha:0.5)),
                     const SizedBox(height: 10),
                     Text("All caught up!", style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold)),
                     Text("No users waiting for verification.", style: GoogleFonts.inter(color: Colors.grey)),
@@ -174,7 +174,7 @@ class AwaitingVerificationScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white, 
         borderRadius: BorderRadius.circular(8),
-        boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 5)],
+        boxShadow: [BoxShadow(color: Colors.grey.withValues(alpha:0.05), blurRadius: 5)],
       ),
       child: Column(
         children: [

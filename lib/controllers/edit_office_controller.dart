@@ -245,7 +245,7 @@ class EditOfficeController extends GetxController {
     markers.clear();
     markers.add(Marker(markerId: const MarkerId('office'), position: pos, draggable: true, onDragEnd: (newPos) => _updateMapVisuals(newPos)));
     circles.clear();
-    circles.add(Circle(circleId: const CircleId('radius'), center: pos, radius: selectedRadius.value, fillColor: Colors.blue.withOpacity(0.3), strokeColor: Colors.blue, strokeWidth: 1));
+    circles.add(Circle(circleId: const CircleId('radius'), center: pos, radius: selectedRadius.value, fillColor: Colors.blue.withValues(alpha:0.3), strokeColor: Colors.blue, strokeWidth: 1));
   }
 
   void updateRadius(double newRadius) {

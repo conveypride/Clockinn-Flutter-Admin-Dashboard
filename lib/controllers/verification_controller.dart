@@ -43,7 +43,7 @@ class VerificationController extends GetxController {
           .doc(companyId)
           .collection('sites')
           .where('status', isEqualTo: true);
-
+ print("Seeing profile for myrole: $myRole and companyId $companyId");
       // 🔒 SECURITY: If Manager, restrict to their site
       if (myRole == "Branch Manager" && mySiteId.isNotEmpty) {
         sitesQuery = sitesQuery.where(FieldPath.documentId, isEqualTo: mySiteId);
@@ -65,7 +65,7 @@ class VerificationController extends GetxController {
       try {
         Query usersQuery = _db.collection('allusers')
             .where('companyId', isEqualTo: companyId)
-            .where('isVerified', isEqualTo: false); // Unverified Only
+            .where('isActive', isEqualTo: false); // Unverified Only
 
         // 🔒 SECURITY: Restrict to site
         if (myRole == "Branch Manager" && mySiteId.isNotEmpty) {
@@ -73,18 +73,20 @@ class VerificationController extends GetxController {
         }
 
         var pointersSnap = await usersQuery.get();
+        print("Found ${pointersSnap.docs.length} unverified users matching criteria.");
         List<Map<String, dynamic>> fullUserList = [];
 
         for (var doc in pointersSnap.docs) {
           var pointerData = doc.data() as Map<String, dynamic>;
           String uid = doc.id;
           String siteId = pointerData['siteId'] ?? "";
-
+ 
           // Double check for client-side safety
           if (myRole == "Branch Manager" && siteId != mySiteId) continue;
           if (siteId.isEmpty) continue;
 
           try {
+            print("Fetching profile for UID: $uid at Site: $siteId, and companyId $companyId");
             var profileDoc = await _db.collection('users')
                 .doc(companyId)
                 .collection('sites')

@@ -72,7 +72,7 @@ class ManageUsersScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 10)],
+        boxShadow: [BoxShadow(color: Colors.grey.withValues(alpha:0.05), blurRadius: 10)],
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -299,7 +299,7 @@ class ManageUsersScreen extends StatelessWidget {
                   ),
                   child: ListTile(
                     leading: CircleAvatar(
-                      backgroundColor: _getRoleColor(admin['role']).withOpacity(0.1),
+                      backgroundColor: _getRoleColor(admin['role']).withValues(alpha:0.1),
                       child: Icon(Icons.security, color: _getRoleColor(admin['role']), size: 18),
                     ),
                     title: Row(

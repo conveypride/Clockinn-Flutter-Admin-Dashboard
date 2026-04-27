@@ -315,7 +315,7 @@ class LandingScreen extends GetView<LandingController> {
               clipBehavior: Clip.antiAlias,
               // Uses standard Image.asset
               child: Image.asset(
-                'img/dashboard.png', 
+                '/img/dashboard.png', 
                 fit: BoxFit.contain,
                 errorBuilder: (context, error, stackTrace) => 
                   Container(

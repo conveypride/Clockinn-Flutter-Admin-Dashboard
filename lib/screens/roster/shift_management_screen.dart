@@ -201,7 +201,7 @@ class ShiftManagementScreen extends StatelessWidget {
       margin: const EdgeInsets.all(4),
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
       decoration: BoxDecoration(
-        color: Color(colorVal).withOpacity(0.2), // Light background
+        color: Color(colorVal).withValues(alpha:0.2), // Light background
         borderRadius: BorderRadius.circular(4),
         border: Border(left: BorderSide(color: Color(colorVal), width: 3)), // Solid border
       ),
@@ -281,7 +281,7 @@ class ShiftManagementScreen extends StatelessWidget {
                 return ActionChip(
                   avatar: isSelected ? const Icon(Icons.check, size: 14) : null,
                   label: Text(t['name'] as String, style: TextStyle(fontSize: 11, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
-                  backgroundColor: Color(t['color'] as int).withOpacity(isSelected ? 0.4 : 0.1),
+                  backgroundColor: Color(t['color'] as int).withValues(alpha:isSelected ? 0.4 : 0.1),
                   side: isSelected ? BorderSide(color: Color(t['color'] as int), width: 2) : null,
                   onPressed: () {
                     var s = (t['start'] as String).split(":");
